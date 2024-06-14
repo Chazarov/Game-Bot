@@ -50,7 +50,7 @@ def is_win(FIELD:list[str], win_score:int):
 
 
 #Функция возвращает True если при данной конфигурации поля очередность хода принадлежит игроку который играет за symbol (❌ или ⭕)
-def can_walk(symbol:str, field:list[str])->bool:
+def can_walk(symbol:str, field:str)->bool:
     O_count = 0
     X_count = 0 
     for i in range(len(field)):

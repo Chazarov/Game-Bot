@@ -18,6 +18,13 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(40), nullable = False)
     tag: Mapped[str] = mapped_column(String(40), default = "не указан")
     state: Mapped[str] = mapped_column(String(40), nullable = False)
+
+class TTTlobbi(Base):# tic tac toe lobbi 
+    __tablename__ = "tic tac toe lobbi"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    X_user_id: Mapped[int] = mapped_column(Integer, nullable = False)
+    O_user_id: Mapped[int] = mapped_column(Integer, nullable = False)
+
     
 
 
