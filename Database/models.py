@@ -16,7 +16,7 @@ class User(Base):
     __tablename__ = "Users"
     id: Mapped[int] = mapped_column(Integer, primary_key = True)
     name: Mapped[str] = mapped_column(String(40), nullable = False)
-    tag: Mapped[str] = mapped_column(String(40), default = "не указан")
+    tag: Mapped[str] = mapped_column(String(40), default = None, nullable = True)
     state: Mapped[str] = mapped_column(String(40), nullable = False)
 
 class TTTlobbi(Base):# tic tac toe lobbi 
