@@ -3,7 +3,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 class USER_STATES:
     IN_GAME = "IN_GAME"
-    WAITING_FOR_A_GAME = "WZITING_FOR_A_GAME"
+    WAITING_FOR_A_GAME = "WAITING_FOR_A_GAME"
     NOT_ACTIVE = "NOT_ACTIVE"
     
 metadata_obj = MetaData()
@@ -22,8 +22,11 @@ class User(Base):
 class TTTlobbi(Base):# tic tac toe lobbi 
     __tablename__ = "tic tac toe lobbi"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    X_user_id: Mapped[int] = mapped_column(Integer, nullable = False)
-    O_user_id: Mapped[int] = mapped_column(Integer, nullable = False)
+    creator_id: Mapped[int] = mapped_column(Integer, nullable = False)
+    guest_id: Mapped[int] = mapped_column(Integer, nullable = False)
+    creator_field_message_id: Mapped[int] = mapped_column(Integer, nullable = True)
+    guest_field_message_id: Mapped[int] = mapped_column(Integer, nullable = True)
+    connection_fall: Mapped[int] = mapped_column(Integer, default = 0)
 
     
 

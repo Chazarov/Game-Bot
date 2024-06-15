@@ -48,6 +48,7 @@ async def main()->None:
 
     await bot.delete_webhook(drop_pending_updates = True)
     await bot.set_my_description("/start - начать работу")
+    await bot.set_my_commands(commands = user_commands,scope = types.BotCommandScopeAllPrivateChats())
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
