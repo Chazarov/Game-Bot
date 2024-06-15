@@ -4,6 +4,7 @@ from aiogram.filters.callback_data import CallbackData
 
 class Game_callback_data(CallbackData, prefix = "game"):
     opponent_id:int
+    opponent_field_message_id:int
     field:str
     lobbi_id:int
     X:int

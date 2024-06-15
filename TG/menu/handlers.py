@@ -14,8 +14,13 @@ router = Router()
 
 
 @router.message(Command("start"))
-async def command_start(message: types.Message, state:FSMContext):
-    print(message.message_id)
+async def command_start(message: types.Message, session:AsyncSession):
+    user_id = message.from_user.id
+    user = await orm_query.get_user_by_id(session = session, user_id = user_id)
+    if(user == None):
+        tag = message.from_user.username
+        await orm_query.add_user(session = session, user_id = user_id, name = message.from_user.first_name, tag = tag)
+
     await message.answer("Приветствую!")
 
 
