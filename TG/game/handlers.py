@@ -166,24 +166,21 @@ async def game_playing_callback(callback:types.CallbackQuery, callback_data:Game
     result = game.is_win(FIELD = field, win_score = 3)
     
     if(result == 'ничья'):
-        await orm_query.set_user_state(session = session, user_id = callback.from_user.id, state = USER_STATES.NOT_ACTIVE)
-        await orm_query.close_lobbi(session = session, lobbi_id = cbd.lobbi_id)
-
         await bot.edit_message_text(text =\
         f"у вас ничья", chat_id = opponent_id, message_id = opponent_field_message_id, reply_markup = finally_buttons())
 
-        return await callback.message.edit_text(text =\
+        await callback.message.edit_text(text =\
         f"у вас ничья", reply_markup = finally_buttons())
     elif(result == letter):
-        await orm_query.set_user_state(session = session, user_id = callback.from_user.id, state = USER_STATES.NOT_ACTIVE)
-        await orm_query.close_lobbi(session = session, lobbi_id = cbd.lobbi_id)
-
         await bot.edit_message_text(text =\
         f"Вы проиграли 😔", chat_id = opponent_id, message_id = opponent_field_message_id, reply_markup = finally_buttons())
 
-        return await callback.message.edit_text(text =\
+        await callback.message.edit_text(text =\
         f"Победа!🏆\n", reply_markup = finally_buttons())
-    
+
+    await orm_query.set_user_state(session = session, user_id = callback.from_user.id, state = USER_STATES.NOT_ACTIVE)
+    await orm_query.set_user_state(session = session, user_id = opponent_id, state = USER_STATES.NOT_ACTIVE)
+    await orm_query.close_lobbi(session = session, lobbi_id = cbd.lobbi_id)
 
 
 @router.callback_query(F.data == "end_game", Game_states.In_game)
