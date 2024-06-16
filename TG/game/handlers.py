@@ -87,7 +87,7 @@ async def start_game(message: types.Message, state:FSMContext, session:AsyncSess
 
         letter = strings.SYMBOL_O
 
-        opponent_id = lobbi.guest_id
+        opponent_id = lobbi.creator_id
         opponent = await orm_query.get_user_by_id(session = session, user_id = opponent_id)
 
     elif(opponent != None):
