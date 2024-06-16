@@ -10,6 +10,7 @@ from Database import orm_query
 
 
 router = Router()
+router.message.filter(StateFilter(None))
 
 
 

@@ -14,8 +14,9 @@ from Database.models import USER_STATES
 from TG import system_parametrs
 
 from Game import strings
+from Game import game
 
-from TG.game.kbds import game_buttons, Game_callback_data
+from TG.game.kbds import game_buttons, finally_buttons, Game_callback_data
 
 
 
@@ -27,7 +28,7 @@ class Game_states(StatesGroup):
     In_game = State()
 
 
-@router.message(Command("start_game"))
+@router.message(Command("start_game"), StateFilter(None))
 async def start_game(message: types.Message, state:FSMContext, session:AsyncSession):
     
     is_creator:bool
@@ -108,7 +109,6 @@ async def start_game(message: types.Message, state:FSMContext, session:AsyncSess
 
     send_message = await message.answer("...")
     if(not is_creator):
-        print("---------is_creator")
         await orm_query.add_in_lobbi_guest_field_message_id(session = session, lobbi_id = lobbi.id, field_message_id = send_message.message_id)
     else:
         await orm_query.add_in_lobbi_creator_field_message_id(session = session, lobbi_id = lobbi.id, field_message_id = send_message.message_id)
@@ -120,24 +120,77 @@ async def start_game(message: types.Message, state:FSMContext, session:AsyncSess
         await session.refresh(lobbi)
         if(is_creator):
             opponent_field_message_id = lobbi.guest_field_message_id
+            opponent_id = lobbi.guest_id
         else:
             opponent_field_message_id = lobbi.creator_field_message_id
+            opponent_id = lobbi.creator_id
 
-        print(opponent_field_message_id)
         try_count += 1
         await asyncio.sleep(system_parametrs.WAITING_UPDATE_TIME)
         if(try_count > system_parametrs.MAXIMUM_TRY_COUNT):
             return await bot.edit_message_text(text = f"Соединение с игроком не состоялось(\nПопробуйте еще раз", chat_id = chat_id, message_id = send_message.message_id)
 
 
-
+    await state.update_data(letter = letter)
+    await state.update_data(opponent_field_message_id = opponent_field_message_id)
+    await state.update_data(opponent_id = opponent_id)
     field = f"{strings.SYMBOL_UNDEF}" * 9
-    my_callback = Game_callback_data(lobbi_id = lobbi.id, opponent_id = opponent.id, field = field, X = 0, Y = 0, letter = letter, opponent_field_message_id = opponent_field_message_id)
-    
-    await bot.edit_message_text(text = f"Вы играете за {letter}", reply_markup = game_buttons(my_callback), chat_id = chat_id, message_id = send_message.message_id)
+    await bot.edit_message_text(text = f"Вы играете за {letter}", reply_markup = game_buttons(lobbi_id = lobbi.id, field = field, n = 3, m = 3), chat_id = chat_id, message_id = send_message.message_id)
     
 
 
 @router.callback_query(Game_callback_data.filter(), Game_states.In_game)
-async def game_playing_callback(callback:types.CallbackQuery, callback_data:Game_callback_data):
-    pass
+async def game_playing_callback(callback:types.CallbackQuery, callback_data:Game_callback_data, state:FSMContext, session:AsyncSession):
+
+    state_data = await state.get_data()
+    field = [callback_data.field[3*i:][:3] for i in range(3)]
+    cbd = callback_data
+    bot = callback.bot
+
+    letter = state_data["letter"]
+    opponent_field_message_id = state_data["opponent_field_message_id"]
+    opponent_id = state_data["opponent_id"]
+
+    if(not game.can_walk(symbol = letter, field = callback_data.field)):
+        return await callback.answer("Сейчас не ваш ход🚫")
+    
+    if(field[cbd.Y][cbd.X] != strings.SYMBOL_UNDEF):
+        return await callback.answer("Вы не можете так сходить!")
+    
+    field[cbd.Y] = field[cbd.Y][:cbd.X] + letter + field[cbd.Y][cbd.X + 1:]
+
+    await callback.message.edit_reply_markup(reply_markup = game_buttons(lobbi_id = cbd.lobbi_id, field = "".join(field), n = 3, m = 3))
+    await bot.edit_message_reply_markup(chat_id = opponent_id, message_id = opponent_field_message_id, \
+                                        reply_markup = game_buttons(lobbi_id = cbd.lobbi_id, field = "".join(field), n = 3, m = 3))
+    
+    result = game.is_win(FIELD = field, win_score = 3)
+    
+    if(result == 'ничья'):
+        await orm_query.set_user_state(session = session, user_id = callback.from_user.id, state = USER_STATES.NOT_ACTIVE)
+        await orm_query.close_lobbi(session = session, lobbi_id = cbd.lobbi_id)
+
+        await bot.edit_message_text(text =\
+        f"у вас ничья", chat_id = opponent_id, message_id = opponent_field_message_id, reply_markup = finally_buttons())
+
+        return await callback.message.edit_text(text =\
+        f"у вас ничья", reply_markup = finally_buttons())
+    elif(result == letter):
+        await orm_query.set_user_state(session = session, user_id = callback.from_user.id, state = USER_STATES.NOT_ACTIVE)
+        await orm_query.close_lobbi(session = session, lobbi_id = cbd.lobbi_id)
+
+        await bot.edit_message_text(text =\
+        f"Вы проиграли 😔", chat_id = opponent_id, message_id = opponent_field_message_id, reply_markup = finally_buttons())
+
+        return await callback.message.edit_text(text =\
+        f"Победа!🏆\n", reply_markup = finally_buttons())
+    
+
+
+@router.callback_query(F.data == "end_game", Game_states.In_game)
+async def end_game(callback:types.CallbackQuery, state:FSMContext):
+    await state.clear()
+    await callback.message.edit_reply_markup(reply_markup = None)
+
+        
+
+

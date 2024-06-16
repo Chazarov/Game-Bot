@@ -57,18 +57,15 @@ def is_win(FIELD:list[str], win_score:int):
 def can_walk(symbol:str, field:str)->bool:
     O_count = 0
     X_count = 0 
-    for i in range(len(field)):
-        for cell in field[i]: 
-            if(cell == SYMBOL_O): O_count += 1
-            if(cell == SYMBOL_X): X_count += 1
+    for cell in field:
+        if(cell == SYMBOL_O): O_count += 1
+        if(cell == SYMBOL_X): X_count += 1
 
     if(symbol == SYMBOL_O):
-        if(X_count > O_count): return True
-        else: return False
+        return X_count > O_count
     elif(symbol == SYMBOL_X):
-        if(O_count == X_count): return True
-        else: return False
-    else: return None
+        return X_count == O_count
+    else: raise ValueError(f"Unexpected symbol: {symbol}")
 
 
 
