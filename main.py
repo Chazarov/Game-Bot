@@ -12,6 +12,7 @@ from Database.middleweares import DataBaseSession
 
 from TG.game.handlers import router as game_router
 from TG.menu.handlers import router as menu_router
+from TG.pay.handlers import router as pay_router
 
 
 
@@ -22,8 +23,11 @@ from TG.menu.handlers import router as menu_router
 bot = Bot(token = os.getenv("TOKEN"))
 dp = Dispatcher()
 
+
 dp.include_router(game_router)
 dp.include_router(menu_router)
+dp.include_router(pay_router)
+
 
 async def on_startup(bot):
     await as_create_db()

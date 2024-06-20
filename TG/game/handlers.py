@@ -23,22 +23,28 @@ from TG.game.kbds import game_buttons, finally_buttons, Game_callback_data
 router = Router()
 
 
+
+
 class Game_states(StatesGroup):
     Find_game = State()
     In_game = State()
 
 
-@router.message(Command("start_game"), StateFilter(None))
-async def start_game(message: types.Message, state:FSMContext, session:AsyncSession):
-    
-    is_creator:bool
 
+async def start_game(callback:types.CallbackQuery, callback_data:Game_callback_data, state:FSMContext, session:AsyncSession):
+    
+    message = callback.message
+
+    is_creator:bool
+    
     message_id = message.message_id + 1
     bot = message.bot
-    chat_id = message.from_user.id
+    chat_id = callback.from_user.id
+
+    game_parametrs = game.make_game_parametrs(n = callback_data.n, m = callback_data.m, bet = callback_data.bet)
 
     await state.set_state(Game_states.Find_game)
-    await orm_query.set_user_state(session = session, user_id = chat_id, state = USER_STATES.WAITING_FOR_A_GAME)
+    await orm_query.set_user_state(session = session, user_id = chat_id, state = USER_STATES.WAITING_FOR_A_GAME, find_game_parametrs = game_parametrs)
     await message.answer("...")
 
     timer_start = time.time()
@@ -48,8 +54,7 @@ async def start_game(message: types.Message, state:FSMContext, session:AsyncSess
     lobbi = None
     bar = "⚫️"
 
-
-
+    
     while(1):
         bar_count+=1
         waiting_time = int(time.time() - timer_start)
@@ -64,7 +69,7 @@ async def start_game(message: types.Message, state:FSMContext, session:AsyncSess
         if(waiting_time%system_parametrs.WAITING_UPDATE_TIME == 0):
             lobbi = await orm_query.get_lobbi_by_invitation(session = session, guest_id = chat_id)
             if(lobbi != None): break
-            opponent = await orm_query.get_user_who_want_to_play(session = session, ignore_user_id = chat_id)
+            opponent = await orm_query.get_user_who_want_to_play(session = session, ignore_user_id = chat_id, game_params = game_parametrs)
             if(opponent != None): break
 
         if(time.time() - timer_start > system_parametrs.MAXIMUM_WAITING_TIME): break
@@ -73,73 +78,81 @@ async def start_game(message: types.Message, state:FSMContext, session:AsyncSess
     await orm_query.set_user_state(session = session, user_id = chat_id, state = USER_STATES.IN_GAME)
     await state.set_state(Game_states.In_game)
 
+    try:
+        # Проверка для профилактики ошибки создания двух комнат(lobbi) с одним и тем же пользователем
+        # (пользователь был приглашен в комнату другого игрока, пока для него создавалась собственная комната)
+        another_lobbi = await orm_query.get_lobbi_by_invitation(session = session, guest_id = chat_id)
+        if(another_lobbi != None):
+            letter = strings.SYMBOL_O
+            lobbi = another_lobbi
+        
+        letter = ""#❌ или ⭕ в зависимости от того , за кого будет играть пользователь
+        if(lobbi != None):
+            is_creator = False
 
-    # Проверка для профилактики ошибки создания двух комнат(lobbi) с одним и тем же пользователем
-    # (пользователь был приглашен в комнату другого игрока, пока для него создавалась собственная комната)
-    another_lobbi = await orm_query.get_lobbi_by_invitation(session = session, guest_id = chat_id)
-    if(another_lobbi != None):
-        letter = strings.SYMBOL_O
-        lobbi = another_lobbi
-    
-    letter = ""#❌ или ⭕ в зависимости от того , за кого будет играть пользователь
-    if(lobbi != None):
-        is_creator = False
+            letter = strings.SYMBOL_O
 
-        letter = strings.SYMBOL_O
-
-        opponent_id = lobbi.creator_id
-        opponent = await orm_query.get_user_by_id(session = session, user_id = opponent_id)
-
-    elif(opponent != None):
-        is_creator = True
-
-        lobbi = await orm_query.create_lobbi(session = session, X_user_id = message.from_user.id, O_user_id = opponent.id)
-        letter = strings.SYMBOL_X
-            
-    else:
-        await orm_query.set_user_state(session = session, user_id = chat_id, state = USER_STATES.NOT_ACTIVE)
-        return await bot.edit_message_text(text = f"К сожалению в лобби сейчас нет игроков 😢\nпопробуйте еще раз позже", chat_id = chat_id, message_id = message_id)
-    
-
-    op_tag = opponent.tag
-    if(op_tag == None): op_tag = ""
-    else: op_tag = "@" + op_tag
-
-    await bot.edit_message_text(text = f"Ваш противник: {opponent.name}  {op_tag}", chat_id = chat_id, message_id = message_id)
-
-    send_message = await message.answer("...")
-    if(not is_creator):
-        await orm_query.add_in_lobbi_guest_field_message_id(session = session, lobbi_id = lobbi.id, field_message_id = send_message.message_id)
-    else:
-        await orm_query.add_in_lobbi_creator_field_message_id(session = session, lobbi_id = lobbi.id, field_message_id = send_message.message_id)
-
-    opponent_field_message_id = None
-    try_count = 0
-    while(opponent_field_message_id == None):
-        lobbi = await orm_query.get_lobbi_by_id(session = session, lobbi_id = lobbi.id)
-        await session.refresh(lobbi)
-        if(is_creator):
-            opponent_field_message_id = lobbi.guest_field_message_id
-            opponent_id = lobbi.guest_id
-        else:
-            opponent_field_message_id = lobbi.creator_field_message_id
             opponent_id = lobbi.creator_id
+            opponent = await orm_query.get_user_by_id(session = session, user_id = opponent_id)
 
-        try_count += 1
-        await asyncio.sleep(system_parametrs.WAITING_UPDATE_TIME)
-        if(try_count > system_parametrs.MAXIMUM_TRY_COUNT):
-            return await bot.edit_message_text(text = f"Соединение с игроком не состоялось(\nПопробуйте еще раз", chat_id = chat_id, message_id = send_message.message_id)
+        elif(opponent != None):
+            is_creator = True
+
+            lobbi = await orm_query.create_lobbi(session = session, creator_id = chat_id, guest_id = opponent.id)
+            letter = strings.SYMBOL_X
+                
+        else:
+            await orm_query.set_user_state(session = session, user_id = chat_id, state = USER_STATES.NOT_ACTIVE)
+            return await bot.edit_message_text(text = f"К сожалению в лобби сейчас нет игроков 😢\nпопробуйте еще раз позже", chat_id = chat_id, message_id = message_id)
+        
+
+        op_tag = opponent.tag
+        if(op_tag == None): op_tag = ""
+        else: op_tag = "@" + op_tag
+
+        await bot.edit_message_text(text = f"Ваш противник: {opponent.name}  {op_tag}", chat_id = chat_id, message_id = message_id)
+
+        send_message = await message.answer("...")
+        if(not is_creator):
+            await orm_query.add_in_lobbi_guest_field_message_id(session = session, lobbi_id = lobbi.id, field_message_id = send_message.message_id)
+        else:
+            await orm_query.add_in_lobbi_creator_field_message_id(session = session, lobbi_id = lobbi.id, field_message_id = send_message.message_id)
+
+        opponent_field_message_id = None
+        try_count = 0
+        while(opponent_field_message_id == None):
+            lobbi = await orm_query.get_lobbi_by_id(session = session, lobbi_id = lobbi.id)
+            await session.refresh(lobbi)
+            if(is_creator):
+                opponent_field_message_id = lobbi.guest_field_message_id
+                opponent_id = lobbi.guest_id
+            else:
+                opponent_field_message_id = lobbi.creator_field_message_id
+                opponent_id = lobbi.creator_id
+
+            try_count += 1
+            await asyncio.sleep(system_parametrs.WAITING_UPDATE_TIME)
+            if(try_count > system_parametrs.MAXIMUM_TRY_COUNT):
+                await state.clear()
+                await orm_query.set_user_state(session = session, user_id = chat_id, state = USER_STATES.NOT_ACTIVE)
+                await orm_query.close_lobbi(session = session, lobbi_id = lobbi.id)
+                return await bot.edit_message_text(text = f"Соединение с игроком не состоялось(\nПопробуйте еще раз", chat_id = chat_id, message_id = send_message.message_id)
 
 
-    await state.update_data(letter = letter)
-    await state.update_data(opponent_field_message_id = opponent_field_message_id)
-    await state.update_data(opponent_id = opponent_id)
-    field = f"{strings.SYMBOL_UNDEF}" * 9
-    await bot.edit_message_text(text = f"Вы играете за {letter}", reply_markup = game_buttons(lobbi_id = lobbi.id, field = field, n = 3, m = 3), chat_id = chat_id, message_id = send_message.message_id)
-    
+        await state.update_data(letter = letter)
+        await state.update_data(opponent_field_message_id = opponent_field_message_id)
+        await state.update_data(opponent_id = opponent_id)
+        callback_data.field = f"{strings.SYMBOL_UNDEF}" * callback_data.n*callback_data.m
+        callback_data.lobbi_id = lobbi.id
+        await bot.edit_message_text(text = f"Вы играете за {letter}", reply_markup = game_buttons(callback_data = callback_data), chat_id = chat_id, message_id = send_message.message_id)
+    except Exception as e: 
+        print(e)
+        if(lobbi != None):
+            await orm_query.close_lobbi(session = session, lobbi_id = lobbi.id)
+        await state.clear()
+        await orm_query.set_user_state(session = session, user_id = chat_id, state = USER_STATES.NOT_ACTIVE)
+        return await bot.edit_message_text(text = f"Ошибка подключения (\nПопробуйте еще раз позже", chat_id = chat_id, message_id = send_message.message_id)
 
-
-@router.callback_query(Game_callback_data.filter(), Game_states.In_game)
 async def game_playing_callback(callback:types.CallbackQuery, callback_data:Game_callback_data, state:FSMContext, session:AsyncSession):
 
     state_data = await state.get_data()
@@ -159,9 +172,11 @@ async def game_playing_callback(callback:types.CallbackQuery, callback_data:Game
     
     field[cbd.Y] = field[cbd.Y][:cbd.X] + letter + field[cbd.Y][cbd.X + 1:]
 
-    await callback.message.edit_reply_markup(reply_markup = game_buttons(lobbi_id = cbd.lobbi_id, field = "".join(field), n = 3, m = 3))
+    callback_data.field = "".join(field)
+
+    await callback.message.edit_reply_markup(reply_markup = game_buttons(callback_data = callback_data))
     await bot.edit_message_reply_markup(chat_id = opponent_id, message_id = opponent_field_message_id, \
-                                        reply_markup = game_buttons(lobbi_id = cbd.lobbi_id, field = "".join(field), n = 3, m = 3))
+                                        reply_markup = game_buttons(callback_data = callback_data))
     
     result = game.is_win(FIELD = field, win_score = 3)
     
@@ -190,4 +205,6 @@ async def end_game(callback:types.CallbackQuery, state:FSMContext):
 
         
 
+router.callback_query.register(start_game, Game_callback_data.filter(), StateFilter(None))
+router.callback_query.register(game_playing_callback, Game_callback_data.filter(), Game_states.In_game)
 

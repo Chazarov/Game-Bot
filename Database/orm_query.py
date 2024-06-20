@@ -11,8 +11,8 @@ async def get_user_by_id(session:AsyncSession, user_id:int):
     r = await session.execute(q)
     return r.scalar()
 
-async def get_user_who_want_to_play(session:AsyncSession, ignore_user_id:int):
-    q = select(User).where(User.state == USER_STATES.WAITING_FOR_A_GAME, User.id != ignore_user_id)
+async def get_user_who_want_to_play(session:AsyncSession, ignore_user_id:int, game_params:str):
+    q = select(User).where(User.state == USER_STATES.WAITING_FOR_A_GAME, User.id != ignore_user_id, User.game_params == game_params)
     r = await session.execute(q)
     return r.scalars().first()
 
@@ -30,11 +30,30 @@ async def get_lobbi_by_id(session:AsyncSession, lobbi_id:int):
 
 
 
-
-
-async def set_user_state(session:AsyncSession, user_id:int, state:str):
+async def set_user_balance(session:AsyncSession, user_id:int, amount:int)->bool:
     user = await get_user_by_id(session = session, user_id = user_id)
     if(user != None):
+
+        if(user.balance + amount >= 0):
+            user.balance += amount
+            await session.commit()
+            return True
+        else: return False
+    else: raise ValueError(f"User with id {user_id} not found")
+
+async def set_user_state(session:AsyncSession, user_id:int, state:str, find_game_parametrs:str = None):
+
+    user = await get_user_by_id(session = session, user_id = user_id)
+    
+    if(user != None):
+        if(state == USER_STATES.WAITING_FOR_A_GAME):
+            if (find_game_parametrs == None):
+                raise ValueError(f"value of find_game_parametrs must not be empty")
+            user.game_params = find_game_parametrs
+
+        if(state == USER_STATES.NOT_ACTIVE):
+            user.game_params = None
+
         user.state = state
         await session.commit()
         return user
@@ -69,10 +88,10 @@ async def add_user(session:AsyncSession, user_id:int, tag:str, name:str):
     await session.commit()
     return obj
 
-async def create_lobbi(session:AsyncSession, X_user_id:int, O_user_id:int):
+async def create_lobbi(session:AsyncSession, creator_id:int, guest_id:int):
     obj = TTTlobbi(
-        creator_id = X_user_id,
-        guest_id = O_user_id,
+        creator_id = creator_id,
+        guest_id = guest_id,
     )
     session.add(obj)
     await session.commit()

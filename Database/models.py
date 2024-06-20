@@ -18,6 +18,8 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(40), nullable = False)
     tag: Mapped[str] = mapped_column(String(40), default = None, nullable = True)
     state: Mapped[str] = mapped_column(String(40), nullable = False)
+    game_params: Mapped[str] = mapped_column(String(40), nullable = True, default = None)
+    balance: Mapped[int] = mapped_column(Integer, default = 0)
 
 class TTTlobbi(Base):# tic tac toe lobbi 
     __tablename__ = "tic tac toe lobbi"
@@ -26,6 +28,7 @@ class TTTlobbi(Base):# tic tac toe lobbi
     guest_id: Mapped[int] = mapped_column(Integer, nullable = False)
     creator_field_message_id: Mapped[int] = mapped_column(Integer, nullable = True)
     guest_field_message_id: Mapped[int] = mapped_column(Integer, nullable = True)
+    bet: Mapped[int] = mapped_column(Integer, default = 0)
     connection_fall: Mapped[int] = mapped_column(Integer, default = 0)
 
     

@@ -68,6 +68,16 @@ def can_walk(symbol:str, field:str)->bool:
     else: raise ValueError(f"Unexpected symbol: {symbol}")
 
 
+def make_game_parametrs(n:int, m:int, bet:int)->str:
+    result = "TTT" + str(n)+":"+str(m)+":"+str(bet)
+    return result
+
+def get_game_parametrs(params:str):
+    n, m, bet = map(int, params.split(":")[1:])
+    return n, m, bet
+
+
+
 
 
 
