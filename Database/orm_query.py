@@ -73,6 +73,10 @@ async def add_in_lobbi_creator_field_message_id(session:AsyncSession, lobbi_id:i
         await session.commit()
     else: raise ValueError(f"Lobbi with id {lobbi_id} not found")
 
+async def set_field_in_lobbi(session:AsyncSession, lobbi:TTTlobbi, field:str):
+    lobbi.field = field
+    await session.commit()
+
 
 
 

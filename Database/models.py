@@ -31,6 +31,8 @@ class TTTlobbi(Base):# tic tac toe lobbi
     bet: Mapped[int] = mapped_column(Integer, default = 0)
     connection_fall: Mapped[int] = mapped_column(Integer, default = 0)
 
+    field: Mapped[str] = mapped_column(String(200), nullable = True)
+
     
 
 
