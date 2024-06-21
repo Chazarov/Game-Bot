@@ -162,6 +162,11 @@ async def start_game(callback:types.CallbackQuery, callback_data:Game_callback_d
 
 async def game_playing_callback(callback:types.CallbackQuery, callback_data:Game_callback_data, state:FSMContext, session:AsyncSession):
 
+    async def end_game():
+        await orm_query.set_user_state(session = session, user_id = callback.from_user.id, state = USER_STATES.NOT_ACTIVE)
+        await orm_query.set_user_state(session = session, user_id = opponent_id, state = USER_STATES.NOT_ACTIVE)
+        await orm_query.close_lobbi(session = session, lobbi_id = cbd.lobbi_id)
+
     state_data = await state.get_data()
     cbd = callback_data
     bot = callback.bot
@@ -182,11 +187,12 @@ async def game_playing_callback(callback:types.CallbackQuery, callback_data:Game
 
     field = "".join(field)
 
-    await callback.message.edit_reply_markup(reply_markup = game_buttons(callback_data = callback_data, field = field))
+    await orm_query.set_field_in_lobbi(session = session, lobbi = lobbi, field = field)
+    await callback.message.edit_reply_markup(reply_markup = game_buttons(callback_data = cbd, field = field))
     await bot.edit_message_reply_markup(chat_id = opponent_id, message_id = opponent_field_message_id, \
-                                        reply_markup = game_buttons(callback_data = callback_data, field = field))
+                                        reply_markup = game_buttons(callback_data = cbd, field = field))
     
-    result = game.is_win(FIELD = field, win_score = 3)
+    result = game.is_win(FIELD = field, win_score = cbd.win_score)
     
     if(result == 'ничья'):
         await bot.edit_message_text(text =\
@@ -203,11 +209,6 @@ async def game_playing_callback(callback:types.CallbackQuery, callback_data:Game
         f"Победа!🏆\n", reply_markup = finally_buttons())
 
         await end_game()
-
-    async def end_game():
-        await orm_query.set_user_state(session = session, user_id = callback.from_user.id, state = USER_STATES.NOT_ACTIVE)
-        await orm_query.set_user_state(session = session, user_id = opponent_id, state = USER_STATES.NOT_ACTIVE)
-        await orm_query.close_lobbi(session = session, lobbi_id = cbd.lobbi_id)
 
 
 @router.callback_query(F.data == "end_game", Game_states.In_game)
