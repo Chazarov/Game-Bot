@@ -185,14 +185,16 @@ async def game_playing_callback(callback:types.CallbackQuery, callback_data:Game
     
     field[cbd.Y] = field[cbd.Y][:cbd.X] + letter + field[cbd.Y][cbd.X + 1:]
 
-    field = "".join(field)
+    field_line = "".join(field)
 
-    await orm_query.set_field_in_lobbi(session = session, lobbi = lobbi, field = field)
-    await callback.message.edit_reply_markup(reply_markup = game_buttons(callback_data = cbd, field = field))
+    await orm_query.set_field_in_lobbi(session = session, lobbi = lobbi, field = field_line)
+    await callback.message.edit_reply_markup(reply_markup = game_buttons(callback_data = cbd, field = field_line))
     await bot.edit_message_reply_markup(chat_id = opponent_id, message_id = opponent_field_message_id, \
-                                        reply_markup = game_buttons(callback_data = cbd, field = field))
+                                        reply_markup = game_buttons(callback_data = cbd, field = field_line))
     
     result = game.is_win(FIELD = field, win_score = cbd.win_score)
+
+    print("\n".join(field) + "\n\n" + str(cbd.win_score) + "\n ==> " + str(result) + "\n")
     
     if(result == 'ничья'):
         await bot.edit_message_text(text =\
