@@ -1,6 +1,6 @@
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from Database.models import User, USER_STATES, TTTlobbi, promo_codes
+from Database.models import User, USER_STATES, TTTlobbi
 
 from random import randint
 
@@ -41,43 +41,6 @@ async def set_user_balance(session:AsyncSession, user_id:int, amount:int)->bool:
         else: return False
     else: raise ValueError(f"User with id {user_id} not found")
 
-async def del_user_balance(session:AsyncSession, user_id:int, amount:float)->bool:
-    user = await get_user_by_id(session = session, user_id = user_id)
-    if(user != None):
-        user.balance = user.balance - amount
-        await session.commit()
-        return True
-    else: raise ValueError(f"User with id {user_id} not found")
-
-async def add_win(session:AsyncSession, user_id:int)->bool:
-    user = await get_user_by_id(session = session, user_id = user_id)
-    if(user != None):
-        user.wins = user.wins + 1
-        await session.commit()
-        return True
-    else: raise ValueError(f"User with id {user_id} not found")
-
-async def change_active(session:AsyncSession, user_id:int, is_active:bool) -> bool:
-    user = await get_user_by_id(session=session, user_id=user_id)
-    if (user != None):
-        user.is_active = is_active
-        await session.commit()
-        return True
-    else:
-        raise ValueError(f"User with id {user_id} not found")
-
-async def get_ative_users(session:AsyncSession):
-    users = await session.execute(
-        select(User.id).filter(User.is_active)
-    )
-    return users.scalars().all()
-async def add_lose(session:AsyncSession, user_id:int)->bool:
-    user = await get_user_by_id(session = session, user_id = user_id)
-    if(user != None):
-        user.loses = user.loses + 1
-        await session.commit()
-        return True
-    else: raise ValueError(f"User with id {user_id} not found")
 async def set_user_state(session:AsyncSession, user_id:int, state:str, find_game_parametrs:str = None):
 
     user = await get_user_by_id(session = session, user_id = user_id)
@@ -116,24 +79,8 @@ async def set_field_in_lobbi(session:AsyncSession, lobbi:TTTlobbi, field:str):
 
 
 
-async def add_promo(session:AsyncSession, promo:str, summa:int):
-    obj = promo_codes(
-        promoname = promo,
-        amount = summa,
-    )
-    session.add(obj)
-    await session.commit()
-    return obj
 
-async def get_promo_by_id(session:AsyncSession, promo:str):
-    q = select(promo_codes).where(promo_codes.promoname == promo)
-    r = await session.execute(q)
-    return r.scalar()
 
-async def delete_promo(session:AsyncSession, promo:str):
-    promo = await get_promo_by_id(session = session, promo = promo)
-    await session.delete(promo)
-    await session.commit()
 async def add_user(session:AsyncSession, user_id:int, tag:str, name:str):
     obj = User(
         id = user_id,

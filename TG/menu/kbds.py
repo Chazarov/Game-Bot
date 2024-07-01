@@ -1,4 +1,4 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters.callback_data import CallbackData
 
 from TG.game.kbds import Game_callback_data
@@ -7,16 +7,11 @@ from TG.game.kbds import Game_callback_data
 def menu_buttons():
     kbd = InlineKeyboardMarkup(inline_keyboard = [
             [
-                InlineKeyboardButton(text = "Играть 🎮", callback_data="games"),
-
+                InlineKeyboardButton(text = "Играть🎮", callback_data="games"),
+                InlineKeyboardButton(text="Пополнить баланс💳", callback_data="balance"),
             ],
             [
-                InlineKeyboardButton(text="Пополнить баланс 💳", callback_data="balance"),
-                InlineKeyboardButton(text="Вывести деньги 💳", callback_data="del_balance"),
-            ],
-            [
-                InlineKeyboardButton(text="Cтатистика 👤", callback_data="stats"),
-                InlineKeyboardButton(text="Рейтинг 🔝", callback_data="rating"),
+                InlineKeyboardButton(text = "Профиль👤", callback_data="chk"),
             ],
         ]
     )
@@ -32,37 +27,6 @@ def choise_game_buttons():
             ],
         ]
     )
-    return kbd
-
-def backprof():
-    kbd = InlineKeyboardMarkup(inline_keyboard = [
-            [
-                InlineKeyboardButton(text = "Назад", callback_data="profile"),
-            ],
-        ]
-    )
-    return kbd
-
-def work_btn():
-    kbd = InlineKeyboardMarkup(inline_keyboard = [
-            [
-                InlineKeyboardButton(text = "🎁 Создать промокод", callback_data="create_promo"),
-            ],
-            [
-                InlineKeyboardButton(text = "📥 Рассылка", callback_data="message_to_all"),
-            ],
-        ]
-    )
-    return kbd
-
-
-def main_reply_buttoms():
-
-    kbd = ReplyKeyboardMarkup(keyboard=[
-            [
-                KeyboardButton(text="⚡️ Воркер панель"),
-            ],
-        ], resize_keyboard=True)
     return kbd
 
 def choise_TTT_buttons():

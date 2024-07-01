@@ -17,6 +17,9 @@ from TG.pay.handlers import router as pay_router
 
 
 
+
+
+
 bot = Bot(token = os.getenv("TOKEN"))
 dp = Dispatcher()
 
