@@ -13,8 +13,8 @@ from Database import orm_query
 from Database.models import USER_STATES
 from TG import system_parametrs
 
-from Game import strings
-from Game import game
+from Game.TicTacToe import strings
+from Game.TicTacToe import game
 
 from TG.game.kbds import game_buttons, finally_buttons, Game_callback_data
 
