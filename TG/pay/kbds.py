@@ -14,3 +14,22 @@ def check_pay(invoice,URL):
     )
 
     return kbd
+
+def add_bal_buttons():
+    kbd = InlineKeyboardMarkup(inline_keyboard = [
+            [
+                InlineKeyboardButton(text="💸 25 USDT", callback_data=f"invoice#25"),
+            ],
+            [
+                InlineKeyboardButton(text="💸 50 USDT", callback_data=f"invoice#50"),
+            ],
+            [
+                InlineKeyboardButton(text="💸 100 USDT", callback_data=f"invoice#100"),
+            ],
+            [
+                InlineKeyboardButton(text="🎁 Ввести промокод", callback_data=f"enter_promo"),
+            ],
+        ]
+    )
+
+    return kbd

@@ -21,6 +21,18 @@ class User(Base):
     game_params: Mapped[str] = mapped_column(String(40), nullable = True, default = None)
     balance: Mapped[int] = mapped_column(Integer, default = 0)
 
+    loses: Mapped[int] = mapped_column(Integer, default=0)
+    wins: Mapped[int] = mapped_column(Integer, default=0)
+
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class promo_codes(Base):
+    __tablename__ = "Promocodes"
+
+    promoname: Mapped[str] = mapped_column(String(40), primary_key=True)
+    amount: Mapped[int] = mapped_column(Integer, default=0)
+
 class TTTlobbi(Base):# tic tac toe lobbi 
     __tablename__ = "tic tac toe lobbi"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

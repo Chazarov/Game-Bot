@@ -12,6 +12,13 @@ def is_number(s):
     except ValueError:
         return False
 
+def is_int_num(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
+
 def getPayUrl(text):
     pattern = r"'pay_url': '(.*?)'"
     pay_url_match = re.search(pattern, str(text))

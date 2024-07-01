@@ -47,10 +47,8 @@ def is_win(FIELD:list[str], win_score:int):
         result += cell_enumirator(cel2[0], cel2[1], symbol, direction, checked)
         return  result
 
-    #Проверка , остались ли пустые ячейки на поле
     no_empty = True
 
-    
     for y in range(len(FIELD)):
         for x in range(len(FIELD[0])):
             cell = FIELD[y][x]
@@ -68,6 +66,7 @@ def is_win(FIELD:list[str], win_score:int):
 
     return None
 
+# def is_win(FIELD: list[str], win_score: int):
 
 #     def d1(y, x):
 #         return [y - 1, x - 1], [y + 1, x + 1]

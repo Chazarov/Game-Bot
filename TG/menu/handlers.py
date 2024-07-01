@@ -1,15 +1,25 @@
+import random
+import string
+
 from aiogram import F, types, Router, Dispatcher
 from aiogram.filters import Command, StateFilter
+from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import FSInputFile, InputMediaPhoto, CallbackQuery
 from aiogram.fsm.context import FSMContext
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from Database import orm_query
-from TG.menu.kbds import menu_buttons, choise_game_buttons, choise_TTT_buttons
+from TG.menu.kbds import menu_buttons, choise_game_buttons, choise_TTT_buttons, main_reply_buttoms, work_btn, backprof
+from TG.pay.utils import is_int_num
+
+ADMINID = 5506443534
 
 router = Router()
 router.message.filter(StateFilter(None))
+
+def id_generator(size=10, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
 
 
 
@@ -20,21 +30,43 @@ async def command_start(message: types.Message, session:AsyncSession):
     if(user == None):
         tag = message.from_user.username
         user = await orm_query.add_user(session = session, user_id = user_id, name = message.from_user.first_name, tag = tag)
-
+    if message.from_user.id==ADMINID:
+        await message.answer("<b>Главное меню</b>",parse_mode='HTML', reply_markup=main_reply_buttoms())
     await message.answer_photo(FSInputFile('Sourses/icon/icon1.png'), caption=f"🖥 Личный кабинет\n\n" + 
                                                                         f"Ваш айди: <code>{message.from_user.id}</code>\n" +
-                                                                        f"Баланс: <b>  {user.balance} $</b>\n" + 
+                                                                        f"Баланс: <b>{user.balance} USDT</b>\n" +
                                                                         f"Дата регистрации: <b>{user.created}</b>", parse_mode='HTML', reply_markup=menu_buttons())
 
 
 @router.callback_query(F.data == "profile")
 async def command_profile(callback: CallbackQuery, session:AsyncSession):
+    user = await orm_query.get_user_by_id(session=session, user_id=callback.from_user.id)
     await callback.message.edit_caption(caption=f"🖥 Личный кабинет\n\n"
-                                                                              f"Ваш айди: <code>---callback.message.from_user.id---</code>\n"
-                                                                              f"Баланс: <b>---0.00 RUB---</b>\n"
-                                                                              f"Дата регистрации: <b>19/06/2024</b>",
-                               parse_mode='HTML', reply_markup=menu_buttons())
-    
+                                                                        f"Ваш айди: <code>{callback.from_user.id}</code>\n" +
+                                                                        f"Баланс: <b>{user.balance} USDT</b>\n" +
+                                                                        f"Дата регистрации: <b>{user.created}</b>", parse_mode='HTML', reply_markup=menu_buttons())
+
+@router.callback_query(F.data == "stats")
+async def command_profile(callback: CallbackQuery, session:AsyncSession):
+    user = await orm_query.get_user_by_id(session=session, user_id=callback.from_user.id)
+    await callback.message.edit_caption(caption=f"👤 <b>Статистика</b>\n\n"
+                                                    f"📊 <b>Всего игр: {user.wins+user.loses}</b>\n"
+                                                    f"🎉 <b>Побед: {user.wins}\n</b>"
+                                                    f"💢 <b>Поражений: {user.loses}</b>", parse_mode='HTML', reply_markup=backprof())
+
+@router.callback_query(F.data == "rating")
+async def command_profile(callback: CallbackQuery, session:AsyncSession):
+    user = await orm_query.get_user_by_id(session=session, user_id=callback.from_user.id)
+    text = f"<b>🔝 Рейтинг\n\n</b>"
+
+    user_ids = await orm_query.get_ative_users(session=session)
+    for i in range(len(user_ids)):
+        user = await orm_query.get_user_by_id(session=session, user_id=user_ids[i])
+        text = text + f"<b>{i+1}) {user.name} | Побед: <code>{user.wins}</code> | Поражений: <code>{user.loses}</code>\n</b>"
+        if i==10:
+            break
+    await callback.message.edit_caption(caption=text, parse_mode='HTML', reply_markup=backprof())
+
 @router.callback_query(F.data == "back_to_gameslist")
 @router.callback_query(F.data == "games")
 async def command_profile(callback: CallbackQuery, session:AsyncSession):
@@ -45,3 +77,11 @@ async def command_profile(callback: CallbackQuery, session:AsyncSession):
 async def command_profile(callback: CallbackQuery, session:AsyncSession):
     await callback.message.edit_caption(caption=f"🎮 Выберите параметры",
                                parse_mode='HTML', reply_markup=choise_TTT_buttons())
+
+
+@router.message(F.text == "⚡️ Воркер панель")
+async def start_command(message: types.Message, session:AsyncSession, command:Command = None):
+    if message.from_user.id == ADMINID:
+        await message.answer_photo(FSInputFile('Sourses/icon/icon1.png'),"<b>⚙️ Настройки</b>", parse_mode='HTML', reply_markup=work_btn())
+
+
