@@ -1,7 +1,5 @@
 import asyncio
 import os
-import random
-import string
 import time
 
 from aiogram import F, types, Router, Dispatcher
@@ -9,6 +7,7 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import FSInputFile, InputMediaPhoto
 from aiogram.fsm.context import FSMContext
+
 from crypto_pay_api_sdk import cryptopay
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,14 +19,16 @@ from TG import system_parametrs
 from Game.TTT import strings
 from Game.TTT import game
 
-from TG.game.kbds import game_buttons, finally_buttons, TTT_game_callback_data
-from TG.menu.kbds import choise_TTT_buttons
+from TG.game.filters import CurrentGameFilter
+
+
+from TG.game.TicTacToe.kbds import ttt_game_buttons, TTT_game_callback_data
+from TG.game.TicTacToe.handlers import start_game #Вынести в эту функцию инициализацию игры
 from TG.pay.kbds import check_pay
 from TG.pay.utils import getInv, getPayUrl
 
-Crypto = cryptopay.Crypto(token=os.getenv("CRYPTO_TOKEN"), testnet=False)
-
-router = Router()
+from TG.game.TicTacToe.handlers import router as TTT_router
+from TG.game.Durak.handlers import router as Durak_router
 
 
 
@@ -36,10 +37,22 @@ class Game_states(StatesGroup):
     Find_game = State()
     In_game = State()
 
+
+
+
+    
+router = Router()
+router.include_router(TTT_router)
+router.include_router(Durak_router)
+
+Crypto = cryptopay.Crypto(token=os.getenv("CRYPTO_TOKEN"), testnet=False)
+
+
+
+
 async def delete_menu(callback:types.CallbackQuery):
     await callback.message.delete()
 
-    
 # Соединение игроков происходит следующим образом:  
 #
 #    №1 - Поиск противника 
@@ -210,7 +223,7 @@ async def start_game(callback:types.CallbackQuery, callback_data:TTT_game_callba
             await state.update_data(opponent_id = opponent_id)
             await orm_query.set_field_in_lobbi(session = session, lobbi = lobbi, field = field)
             callback_data.lobbi_id = lobbi.id
-            await bot.edit_message_text(text = f"Вы играете за {letter}", reply_markup = game_buttons(callback_data = callback_data, field = field), chat_id = chat_id, message_id = send_message.message_id)
+            await bot.edit_message_text(text = f"Вы играете за {letter}", reply_markup = ttt_game_buttons(callback_data = callback_data, field = field), chat_id = chat_id, message_id = send_message.message_id)
 
         except Exception as e:
             print(e)
@@ -221,85 +234,6 @@ async def start_game(callback:types.CallbackQuery, callback_data:TTT_game_callba
             return await bot.edit_message_text(text = f"Ошибка подключения (\nПопробуйте еще раз позже", chat_id = chat_id, message_id = send_message.message_id)
 
 
-async def game_playing_callback(callback:types.CallbackQuery, callback_data:TTT_game_callback_data, state:FSMContext, session:AsyncSession):
 
-    async def end_game():
-        await orm_query.set_user_state(session = session, user_id = callback.from_user.id, state = USER_STATES.NOT_ACTIVE)
-        await orm_query.set_user_state(session = session, user_id = opponent_id, state = USER_STATES.NOT_ACTIVE)
-        await orm_query.close_lobbi(session = session, lobbi_id = cbd.lobbi_id)
-
-    state_data = await state.get_data()
-    cbd = callback_data
-    bot = callback.bot
-
-    lobbi = await orm_query.get_lobbi_by_id(session = session, lobbi_id = cbd.lobbi_id)
-    field = [lobbi.field[cbd.n*i:][:cbd.m] for i in range(cbd.n)]
-    letter = state_data["letter"]
-    opponent_field_message_id = state_data["opponent_field_message_id"]
-    opponent_id = state_data["opponent_id"]
-
-    if(not game.can_walk(symbol = letter, field = lobbi.field)):
-        return await callback.answer("Сейчас не ваш ход🚫")
-    
-    if(field[cbd.Y][cbd.X] != strings.SYMBOL_UNDEF):
-        return await callback.answer("Вы не можете так сходить!")
-    
-    field[cbd.Y] = field[cbd.Y][:cbd.X] + letter + field[cbd.Y][cbd.X + 1:]
-
-    field_line = "".join(field)
-
-    await orm_query.set_field_in_lobbi(session = session, lobbi = lobbi, field = field_line)
-    await callback.message.edit_reply_markup(reply_markup = game_buttons(callback_data = cbd, field = field_line))
-    await bot.edit_message_reply_markup(chat_id = opponent_id, message_id = opponent_field_message_id, \
-                                        reply_markup = game_buttons(callback_data = cbd, field = field_line))
-    
-    result = game.is_win(FIELD = field, win_score = cbd.win_score)
-
-    print("\n".join(field) + "\n\n" + str(cbd.win_score) + "\n ==> " + str(result) + "\n")
-    
-    if(result == 'ничья'):
-        await bot.edit_message_text(text =\
-        f"у вас ничья", chat_id = opponent_id, message_id = opponent_field_message_id, reply_markup = finally_buttons())
-
-        await callback.message.edit_text(text =\
-        f"у вас ничья", reply_markup = finally_buttons())
-        await end_game()
-
-    elif(result == letter):
-        await bot.edit_message_text(text =\
-        f"Вы проиграли 😔", chat_id = opponent_id, message_id = opponent_field_message_id, reply_markup = finally_buttons())
-
-        await orm_query.del_user_balance(session=session, user_id=opponent_id, amount=int(callback_data.bet))
-        await orm_query.add_lose(session=session, user_id=opponent_id)
-
-        await orm_query.set_user_balance(session=session, user_id=callback.from_user.id, amount=int(float(callback_data.bet)*1.7))
-        await orm_query.add_win(session=session, user_id=callback.from_user.id)
-
-
-        await callback.message.edit_text(text= \
-                                             f"Победа!🏆\n"
-                                             f"Ваш выигрыш: {str(float(callback_data.bet) * 1.7)} USDT",
-                                         reply_markup=finally_buttons())
-
-        await end_game()
-
-
-@router.callback_query(F.data == "end_game", Game_states.In_game)
-async def end_game(callback:types.CallbackQuery, state:FSMContext):
-    await state.clear()
-    await callback.message.edit_reply_markup(reply_markup = None)
-
-@router.callback_query(F.data == "play_more", Game_states.In_game)
-async def play_more(callback:types.CallbackQuery, state:FSMContext):
-    await state.clear()
-    await callback.message.edit_reply_markup(reply_markup = None)
-    await callback.message.delete()
-
-    await callback.message.answer_photo(FSInputFile('Sourses/icon/icon1.png'),f"🎮 Выберите параметры",
-                               parse_mode='HTML', reply_markup=choise_TTT_buttons())
-
-        
 
 router.callback_query.register(start_game, TTT_game_callback_data.filter(), StateFilter(None))
-router.callback_query.register(game_playing_callback, TTT_game_callback_data.filter(), Game_states.In_game)
-

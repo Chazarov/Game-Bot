@@ -86,6 +86,9 @@ async def command_profile(callback: CallbackQuery, session:AsyncSession):
 async def command_profile(callback: CallbackQuery, session:AsyncSession):
    await callback.message.edit_caption(caption=f"🎮 Выберите параметры",
                                parse_mode='HTML', reply_markup=choise_TTT_buttons())
+   
+#Игрок должен подтвердить  
+
 
 
 @router.message(F.text == "⚡️ Воркер панель")

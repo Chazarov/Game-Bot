@@ -1,18 +1,28 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters.callback_data import CallbackData
 
+from Game.TTT import strings as TTTstrings
+from Game.Durak import strings as DURAKstrings
 
-class TTT_game_callback_data(CallbackData, prefix = "game"):
+
+class GameBase(CallbackData, prefix = "game"):
+    game_name:str
     lobbi_id:int
     bet:int
+class TTT_game_callback_data(GameBase):
+    game_name = TTTstrings.GAME_NAME
     X:int
     Y:int
     n:int
     m:int
     win_score:int
 
+class Durak_game_callback_data(GameBase):
+    game_name = DURAKstrings.GAME_NAME
+    
 
-def game_buttons(callback_data:TTT_game_callback_data, field:str):
+
+def ttt_game_buttons(callback_data:TTT_game_callback_data, field:str):
     cbd = callback_data
     kbd = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text = field[y*cbd.m + x],\

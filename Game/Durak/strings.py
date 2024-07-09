@@ -1,3 +1,5 @@
+GAME_NAME = "DURAK"
+
 WIN = "ПОБЕДА!!!"
 
 HEARTS_SUIT = "♥️"

@@ -1,7 +1,8 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters.callback_data import CallbackData
 
-from TG.game.kbds import TTT_game_callback_data
+from TG.game.TicTacToe.kbds import TTT_game_callback_data
+
 
 
 def menu_buttons():
@@ -60,7 +61,6 @@ def work_btn():
         ]
     )
     return kbd
-
 
 def main_reply_buttoms(isWorker):
     if (isWorker):
