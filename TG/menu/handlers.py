@@ -51,7 +51,7 @@ async def command_profile(callback: CallbackQuery, session:AsyncSession):
                                                                         f"Дата регистрации: <b>{user.created}</b>", parse_mode='HTML', reply_markup=menu_buttons())
 
 @router.callback_query(F.data == "stats")
-async def command_profile(callback: CallbackQuery, session:AsyncSession):
+async def command_statistic(callback: CallbackQuery, session:AsyncSession):
     user = await orm_query.get_user_by_id(session=session, user_id=callback.from_user.id)
     await callback.message.edit_caption(caption=f"👤 <b>Статистика</b>\n\n"
                                                     f"📊 <b>Всего игр: {user.wins+user.loses}</b>\n"
@@ -59,7 +59,7 @@ async def command_profile(callback: CallbackQuery, session:AsyncSession):
                                                     f"💢 <b>Поражений: {user.loses}</b>", parse_mode='HTML', reply_markup=backprof())
 
 @router.callback_query(F.data == "rating")
-async def command_profile(callback: CallbackQuery, session:AsyncSession):
+async def command_rating(callback: CallbackQuery, session:AsyncSession):
     user = await orm_query.get_user_by_id(session=session, user_id=callback.from_user.id)
     text = f"<b>🔝 Рейтинг\n\n</b>"
 
@@ -84,7 +84,8 @@ async def command_profile(callback: CallbackQuery, session:AsyncSession):
 
 @router.callback_query(F.data == "durak_game")
 async def command_profile(callback: CallbackQuery, session:AsyncSession):
-    await callback.answer("В разработке...")
+   await callback.message.edit_caption(caption=f"🎮 Выберите параметры",
+                               parse_mode='HTML', reply_markup=choise_TTT_buttons())
 
 
 @router.message(F.text == "⚡️ Воркер панель")

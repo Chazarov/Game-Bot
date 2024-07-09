@@ -1,7 +1,7 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters.callback_data import CallbackData
 
-from TG.game.kbds import Game_callback_data
+from TG.game.kbds import TTT_game_callback_data
 
 
 def menu_buttons():
@@ -28,7 +28,7 @@ def choise_game_buttons():
                 InlineKeyboardButton(text = "Крестики нолики ❌", callback_data="ttt_game"),
             ],
             [
-                InlineKeyboardButton(text="Дурак онлайн ♣️", callback_data="durak_game"),
+                InlineKeyboardButton(text="Дурак онлайн (один на один) ♣️", callback_data="durak_game"),
             ],
             [
                 InlineKeyboardButton(text = "Назад", callback_data="profile"),
@@ -83,13 +83,13 @@ def main_reply_buttoms(isWorker):
 def choise_TTT_buttons():
     kbd = InlineKeyboardMarkup(inline_keyboard = [
             [
-                InlineKeyboardButton(text = "Поля - 3x3 | Ставка - $25", callback_data = Game_callback_data(field = "-", lobbi_id = 0, X = 0, Y = 0, n = 3, m = 3, win_score = 3, bet = 25).pack()),
+                InlineKeyboardButton(text = "Поля - 3x3 | Ставка - $25", callback_data = TTT_game_callback_data(field = "-", lobbi_id = 0, X = 0, Y = 0, n = 3, m = 3, win_score = 3, bet = 25).pack()),
             ],
             [
-                InlineKeyboardButton(text = "Поля - 5x5 | Ставка - $50", callback_data = Game_callback_data(field = "-", lobbi_id = 0, X = 0, Y = 0, n = 5, m = 5, win_score = 4, bet = 50).pack()),
+                InlineKeyboardButton(text = "Поля - 5x5 | Ставка - $50", callback_data = TTT_game_callback_data(field = "-", lobbi_id = 0, X = 0, Y = 0, n = 5, m = 5, win_score = 4, bet = 50).pack()),
             ],
             [
-                InlineKeyboardButton(text="Поля - 10x10 | Ставка - $100", callback_data = Game_callback_data(field = "-", lobbi_id = 0, X = 0, Y = 0, n = 10, m = 10, win_score = 5, bet = 100).pack()),
+                InlineKeyboardButton(text="Поля - 10x10 | Ставка - $100", callback_data = TTT_game_callback_data(field = "-", lobbi_id = 0, X = 0, Y = 0, n = 10, m = 10, win_score = 5, bet = 100).pack()),
             ],
             [
                 InlineKeyboardButton(text="Назад", callback_data="back_to_gameslist"),

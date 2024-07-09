@@ -17,10 +17,10 @@ from Database import orm_query
 from Database.models import USER_STATES
 from TG import system_parametrs
 
-from Game import strings
-from Game import game
+from Game.TTT import strings
+from Game.TTT import game
 
-from TG.game.kbds import game_buttons, finally_buttons, Game_callback_data
+from TG.game.kbds import game_buttons, finally_buttons, TTT_game_callback_data
 from TG.menu.kbds import choise_TTT_buttons
 from TG.pay.kbds import check_pay
 from TG.pay.utils import getInv, getPayUrl
@@ -39,7 +39,20 @@ class Game_states(StatesGroup):
 async def delete_menu(callback:types.CallbackQuery):
     await callback.message.delete()
 
-async def start_game(callback:types.CallbackQuery, callback_data:Game_callback_data, state:FSMContext, session:AsyncSession):
+    
+# Соединение игроков происходит следующим образом:  
+#
+#    №1 - Поиск противника 
+# Игроку (объект User в Database.models) в базе данных сначала присваивается состояние WAITING_FOR_A_GAME и полю find_game_parametrs - параметры выбранной им игры.
+# Далее происходит поиск пользователя с состоянием WAITING_FOR_A_GAME и идентичными параметрами игры.
+# Если такой пользователь найден - создается "Лобби" (далее будет упоминаться как Комната) (объект TTT_lobbi в Database.models), где находятся параметры для синхронизации
+# (id обоих противников, id сообщений - которые будут являться полем для игры у обоих пользователей).
+#
+# При этом одновременно с поиском пользователя с состоянием WAITING_FOR_A_GAME происходит поиск комнаты, в которую приглашен пользователь (Если в какой-то комнате указан id пользователя как guest_id),
+# значит пользователь уже сам был приглашен в лобби и поиск противника заканчивается.
+#
+# Далее происходит синхронизация параметров игры (смотреть далее в этом коде №2). 
+async def start_game(callback:types.CallbackQuery, callback_data:TTT_game_callback_data, state:FSMContext, session:AsyncSession):
 
     
     
@@ -66,7 +79,11 @@ async def start_game(callback:types.CallbackQuery, callback_data:Game_callback_d
                                                                                   f"Сумма: <b>{callback_data.bet} USDT</b>",
                                    parse_mode='HTML', reply_markup=check_pay(invoiceID, URL))
     else:
+
         await state.set_state(Game_states.Find_game)
+        
+        
+        # Устанавливаем состояние пользователя на ожидание игры с заданными параметрами
         await orm_query.set_user_state(session = session, user_id = chat_id, state = USER_STATES.WAITING_FOR_A_GAME, find_game_parametrs = game_parametrs)
         send_message = await message.answer(text = \
                 f"Идет поиск противника\n"+\
@@ -92,7 +109,8 @@ async def start_game(callback:types.CallbackQuery, callback_data:Game_callback_d
                 f"Время ожидания: {waiting_time}\n"
                 f"|    {bar*bar_count}              \n", chat_id = chat_id, message_id = message_id)
 
-
+            #Чтобы избежать многократного обращения к базе данных за одну секунду проверка приглашения в комнату и поиск игрока для 
+            # приглашения производятся не постоянно а каждые WAITING_UPDATE_TIME (смотреть эту величину в system_parametrs)
             if(waiting_time%system_parametrs.WAITING_UPDATE_TIME == 0):
                 lobbi = await orm_query.get_lobbi_by_invitation(session = session, guest_id = chat_id)
                 if(lobbi != None): break
@@ -147,9 +165,29 @@ async def start_game(callback:types.CallbackQuery, callback_data:Game_callback_d
 
             opponent_field_message_id = None
             try_count = 0
+            #    №2 - Синхронизация параметров игры
+            # Происходит ожидание заполнения всех данных в комнате:
+            # creator_field_message_id и guest_field_message_id - id сообщений, которые будут служить полем для игры.
+            # Данные, необходимые для игрового процесса, распределены следующим образом:
+            #
+            #     1) В объекте комнаты (база данных):
+            # поле (так как в объектах, наследуемых от Callback_data, остановлено ограничение).
+            #     2) В данных машины состояний (FSMcontest) (оперативная память FSM):
+            # id противника,
+            # id сообщения, которое является игровым полем у противника,
+            # letter - обозначает, за кого играет пользователь (❌ или ⭕).
+            #     3) В объекте класса Callback_data (TTT_game_callback_data, см. в TG/game/kbds) (данные, отправляемые при нажатии кнопки, для получения и обработки ботом):
+            # id комнаты для обращения к ней через базу данных,
+            # размер ставки (для надежности он также находится в базе данных в объекте lobbi),
+            # размеры поля,
+            # координаты клетки X и Y, в которую сходил пользователь,
+            # и win_score - количество символов в ряд, которые нужно собрать для победы.
+            # Эти данные также есть в объекте User в поле game_params - параметрах текущей игры пользователя (если пользователь не играет в данный момент, то оно равно None).
+            # Они используются там, для поиска подходящей игры 
+
             while(opponent_field_message_id == None):
                 lobbi = await orm_query.get_lobbi_by_id(session = session, lobbi_id = lobbi.id)
-                await session.refresh(lobbi)
+                await session.refresh(lobbi) # Обновление сессии для получения актуальный на данный момент информации
                 if(is_creator):
                     opponent_field_message_id = lobbi.guest_field_message_id
                     opponent_id = lobbi.guest_id
@@ -183,7 +221,7 @@ async def start_game(callback:types.CallbackQuery, callback_data:Game_callback_d
             return await bot.edit_message_text(text = f"Ошибка подключения (\nПопробуйте еще раз позже", chat_id = chat_id, message_id = send_message.message_id)
 
 
-async def game_playing_callback(callback:types.CallbackQuery, callback_data:Game_callback_data, state:FSMContext, session:AsyncSession):
+async def game_playing_callback(callback:types.CallbackQuery, callback_data:TTT_game_callback_data, state:FSMContext, session:AsyncSession):
 
     async def end_game():
         await orm_query.set_user_state(session = session, user_id = callback.from_user.id, state = USER_STATES.NOT_ACTIVE)
@@ -252,7 +290,7 @@ async def end_game(callback:types.CallbackQuery, state:FSMContext):
     await callback.message.edit_reply_markup(reply_markup = None)
 
 @router.callback_query(F.data == "play_more", Game_states.In_game)
-async def end_game(callback:types.CallbackQuery, state:FSMContext):
+async def play_more(callback:types.CallbackQuery, state:FSMContext):
     await state.clear()
     await callback.message.edit_reply_markup(reply_markup = None)
     await callback.message.delete()
@@ -262,6 +300,6 @@ async def end_game(callback:types.CallbackQuery, state:FSMContext):
 
         
 
-router.callback_query.register(start_game, Game_callback_data.filter(), StateFilter(None))
-router.callback_query.register(game_playing_callback, Game_callback_data.filter(), Game_states.In_game)
+router.callback_query.register(start_game, TTT_game_callback_data.filter(), StateFilter(None))
+router.callback_query.register(game_playing_callback, TTT_game_callback_data.filter(), Game_states.In_game)
 
