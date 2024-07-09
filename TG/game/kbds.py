@@ -27,6 +27,9 @@ def finally_buttons():
         inline_keyboard=[
             [
                 InlineKeyboardButton(text = "Завершить игру", callback_data = "end_game")
+            ],
+            [
+                InlineKeyboardButton(text="Сыграть еще раз", callback_data="play_more")
             ]
         ]
     )
