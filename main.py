@@ -17,9 +17,6 @@ from TG.pay.handlers import router as pay_router
 
 
 
-
-
-
 bot = Bot(token = os.getenv("TOKEN"))
 dp = Dispatcher()
 
@@ -38,9 +35,6 @@ async def on_shutdown(bot):
 
 user_commands = [
     BotCommand(command='start', description='начать работу с ботом'),
-    BotCommand(command='help', description='инструкция по работе с ботом'),
-    BotCommand(command='start_game', description='найти противника'),
-    BotCommand(command='profile', description='мой профиль'),
     
 ]
 
