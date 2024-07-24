@@ -134,14 +134,6 @@ class Durak():
             if(not any(card.power == card_for_turn.power for card in self.field)):
                 raise ERRORS[3]
 
-
-def make_game_parametrs()->str:
-    result = GAME_NAME
-    return result
-
-def get_game_parametrs(params:str):
-    durak = map(int, params.split(":")[1:])
-    return durak
             
 
         

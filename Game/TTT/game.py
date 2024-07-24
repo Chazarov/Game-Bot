@@ -72,13 +72,6 @@ def can_walk(symbol:str, field:str)->bool:
     else: raise ValueError(f"Unexpected symbol: {symbol}")
 
 
-def make_game_parametrs(n:int, m:int, win_score:int, bet:int)->str:
-    result = GAME_NAME + ":" + str(n) + ":" + str(m) + ":" + str(win_score) + ":" + str(bet)
-    return result
-
-def get_game_parametrs(params:str):
-    game_name, n, m, win_score, bet = map(int, params.split(":")[1:])
-    return game_name, n, m, win_score, bet
 
 
 

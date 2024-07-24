@@ -5,12 +5,14 @@ from Game.TTT import strings as TTTstrings
 from Game.Durak import strings as DURAKstrings
 
 
+
+# Теперь все парамеиры игры будут находится в базе данных в объекте лобби.
 class GameBase(CallbackData, prefix = "game"):
     game_name:str
-    lobbi_id:int
+    lobby_id:int
     bet:int
 class TTT_game_callback_data(GameBase):
-    game_name = TTTstrings.GAME_NAME
+    lobby_id:int
     X:int
     Y:int
     n:int
@@ -22,11 +24,9 @@ class Durak_game_callback_data(GameBase):
     
 
 
-def ttt_game_buttons(callback_data:TTT_game_callback_data, field:str):
-    cbd = callback_data
+def ttt_game_buttons(cbd:TTT_game_callback_data, field:str):
     kbd = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text = field[y*cbd.m + x],\
- callback_data = TTT_game_callback_data(lobbi_id = cbd.lobbi_id, Y = y, X = x, n = cbd.n, m = cbd.m, win_score = cbd.win_score, bet = cbd.bet).pack())\
+        [InlineKeyboardButton(text = field[y*cbd.m + x],  callback_data = cbd.pack())\
           for x in range(cbd.m)] for y in range(cbd.n)
     ])
 

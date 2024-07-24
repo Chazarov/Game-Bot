@@ -1,3 +1,5 @@
+from .game import Durak
+
 GAME_NAME = "DURAK"
 
 WIN = "ПОБЕДА!!!"
@@ -63,3 +65,13 @@ KARDS_SET = {
         14: "|♠️|\n|A|",
     },
 }
+
+def make_start_game_parametrs()->str:
+    result = GAME_NAME
+    return result
+
+def get_start_game_parametrs(params:str):
+    game_name = map(int, params.split(":")[1:])
+    return game_name
+
+

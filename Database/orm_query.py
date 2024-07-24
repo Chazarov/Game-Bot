@@ -1,11 +1,14 @@
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from Database.models import User, USER_STATES, TTTlobbi, promo_codes
+from Database.models import User, USER_STATES, Lobby, promo_codes, TTT_game, Durak_game
+
+from Game.TTT import strings as TTTStrings
+from Game.Durak import strings as DurakStrings
 
 from random import randint
 
 
-
+#  User
 async def get_user_by_id(session:AsyncSession, user_id:int):
     q = select(User).where(User.id == user_id)
     r = await session.execute(q)
@@ -15,20 +18,6 @@ async def get_user_who_want_to_play(session:AsyncSession, ignore_user_id:int, ga
     q = select(User).where(User.state == USER_STATES.WAITING_FOR_A_GAME, User.id != ignore_user_id, User.game_params == game_params)
     r = await session.execute(q)
     return r.scalars().first()
-
-async def get_lobbi_by_invitation(session:AsyncSession, guest_id:int):
-    q = select(TTTlobbi).where(TTTlobbi.guest_id == guest_id)
-    r = await session.execute(q)
-    obj = r.scalar()
-
-    return obj
-
-async def get_lobbi_by_id(session:AsyncSession, lobbi_id:int):
-    q = select(TTTlobbi).where(TTTlobbi.id == lobbi_id)
-    r = await session.execute(q)
-    return r.scalar()
-
-
 
 async def set_user_balance(session:AsyncSession, user_id:int, amount:int)->bool:
     user = await get_user_by_id(session = session, user_id = user_id)
@@ -49,6 +38,35 @@ async def del_user_balance(session:AsyncSession, user_id:int, amount:float)->boo
         return True
     else: raise ValueError(f"User with id {user_id} not found")
 
+async def add_lose(session:AsyncSession, user_id:int)->bool:
+    user = await get_user_by_id(session = session, user_id = user_id)
+    if(user != None):
+        user.loses = user.loses + 1
+        await session.commit()
+        return True
+    else: raise ValueError(f"User with id {user_id} not found")
+async def set_user_state(session:AsyncSession, user_id:int, state:str, find_game_parametrs:str = None):
+    user = await get_user_by_id(session = session, user_id = user_id)
+    if(user != None):
+        if(state == USER_STATES.WAITING_FOR_A_GAME):
+            if (find_game_parametrs == None):
+                raise ValueError(f"value of find_game_parametrs must not be empty")
+            user.game_params = find_game_parametrs
+
+        if(state == USER_STATES.NOT_ACTIVE):
+            user.game_params = None
+
+        user.state = state
+        await session.commit()
+        return user
+    else: raise ValueError(f"User with id {user_id} not found")
+
+async def get_active_users(session:AsyncSession):
+    users = await session.execute(
+        select(User.id).filter(User.is_active)
+    )
+    return users.scalars().all()
+
 async def add_win(session:AsyncSession, user_id:int)->bool:
     user = await get_user_by_id(session = session, user_id = user_id)
     if(user != None):
@@ -66,56 +84,73 @@ async def change_active(session:AsyncSession, user_id:int, is_active:bool) -> bo
     else:
         raise ValueError(f"User with id {user_id} not found")
 
-async def get_ative_users(session:AsyncSession):
-    users = await session.execute(
-        select(User.id).filter(User.is_active)
+
+
+
+
+# Lobby
+async def get_lobby_by_id(session:AsyncSession, lobby_id:int):
+    q = select(Lobby).where(Lobby.id == lobby_id)
+    r = await session.execute(q)
+    return r.scalar()
+
+async def get_lobby_by_invitation(session:AsyncSession, guest_id:int):
+    q = select(Lobby).where(Lobby.guest_id == guest_id)
+    r = await session.execute(q)
+    obj = r.scalar()
+
+    return obj
+
+async def create_lobby(session:AsyncSession, creator_id:int, guest_id:int, bet:int, game_name:str, game_start_parametrs:str):
+    game_obj = await create_game(session = session, game_name = game_name, game_parametrs = game_start_parametrs)
+
+
+    obj = Lobby(
+        game_name = game_name,
+        creator_id = creator_id,
+        guest_id = guest_id,
+        game_id = game_obj.id,
+        bet = bet
     )
-    return users.scalars().all()
-async def add_lose(session:AsyncSession, user_id:int)->bool:
-    user = await get_user_by_id(session = session, user_id = user_id)
-    if(user != None):
-        user.loses = user.loses + 1
-        await session.commit()
-        return True
-    else: raise ValueError(f"User with id {user_id} not found")
-async def set_user_state(session:AsyncSession, user_id:int, state:str, find_game_parametrs:str = None):
 
-    user = await get_user_by_id(session = session, user_id = user_id)
-    
-    if(user != None):
-        if(state == USER_STATES.WAITING_FOR_A_GAME):
-            if (find_game_parametrs == None):
-                raise ValueError(f"value of find_game_parametrs must not be empty")
-            user.game_params = find_game_parametrs
-
-        if(state == USER_STATES.NOT_ACTIVE):
-            user.game_params = None
-
-        user.state = state
-        await session.commit()
-        return user
-    else: raise ValueError(f"User with id {user_id} not found")
-
-async def add_in_lobbi_guest_field_message_id(session:AsyncSession, lobbi_id:int, field_message_id):
-    lobbi = await get_lobbi_by_id(session = session, lobbi_id = lobbi_id)
-    if(lobbi != None):
-        lobbi.guest_field_message_id = field_message_id
-        await session.commit()
-    else: raise ValueError(f"Lobbi with id {lobbi_id} not found")
-
-async def add_in_lobbi_creator_field_message_id(session:AsyncSession, lobbi_id:int, field_message_id):
-    lobbi = await get_lobbi_by_id(session = session, lobbi_id = lobbi_id)
-    if(lobbi != None):
-        lobbi.creator_field_message_id = field_message_id
-        await session.commit()
-    else: raise ValueError(f"Lobbi with id {lobbi_id} not found")
-
-async def set_field_in_lobbi(session:AsyncSession, lobbi:TTTlobbi, field:str):
-    lobbi.field = field
+    session.add(obj)
     await session.commit()
+    return obj
 
 
 
+
+
+# Game
+async def get_game_by_id(session:AsyncSession, game_name:str, game_id:int):
+    if(game_name == TTTStrings.GAME_NAME):
+        q = select(TTT_game).where(TTT_game.id == game_id)
+    elif(game_name == DurakStrings.GAME_NAME):
+        q = select(Durak_game).where(Durak_game.id == game_id)
+    r = await session.execute(q)
+    obj = r.scalar()
+
+    return obj
+
+async def create_game(session:AsyncSession, game_name:str, game_parametrs:str):
+    if(game_name == TTTStrings.GAME_NAME):
+        obj = TTT_game(
+            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        )
+    elif(game_name == DurakStrings.GAME_NAME):
+        obj = Durak_game(
+            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        )
+
+    session.add(obj)
+    await session.commit()
+    return obj
+
+
+
+
+
+# Admin
 async def add_promo(session:AsyncSession, promo:str, summa:int):
     obj = promo_codes(
         promoname = promo,
@@ -145,28 +180,9 @@ async def add_user(session:AsyncSession, user_id:int, tag:str, name:str):
     await session.commit()
     return obj
 
-async def create_lobbi(session:AsyncSession, creator_id:int, guest_id:int):
-    obj = TTTlobbi(
-        creator_id = creator_id,
-        guest_id = guest_id,
-    )
-    session.add(obj)
-    await session.commit()
-    return obj
 
 
 
-
-
-async def close_lobbi(session:AsyncSession, lobbi_id:int):
-
-    obj = await get_lobbi_by_id(session = session, lobbi_id = lobbi_id)
-
-    if(obj == None): return None
-    else:
-        await session.delete(obj)
-        await session.commit()
-        return True
 
 
 

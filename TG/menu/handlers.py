@@ -16,6 +16,8 @@ from TG.pay.utils import is_int_num, Crypto
 
 ADMINID = os.getenv("ADMIN_ID")
 
+
+
 router = Router()
 router.message.filter(StateFilter(None))
 
@@ -77,6 +79,11 @@ async def command_profile(callback: CallbackQuery, session:AsyncSession):
     await callback.message.edit_caption(caption=f"🎮 Выберите игру",
                                parse_mode='HTML', reply_markup=choise_game_buttons())
 
+
+
+
+#Здесь меняется состояние и в данные FSMContext добавляется название игры , по которому далее будет происходить фильтрация 
+# и разделение хендлеров на придожения различных игр (фильтр смотреть в TG/Gm)
 @router.callback_query(F.data == "ttt_game")
 async def command_profile(callback: CallbackQuery, session:AsyncSession):
     await callback.message.edit_caption(caption=f"🎮 Выберите параметры",
@@ -84,10 +91,9 @@ async def command_profile(callback: CallbackQuery, session:AsyncSession):
 
 @router.callback_query(F.data == "durak_game")
 async def command_profile(callback: CallbackQuery, session:AsyncSession):
-   await callback.message.edit_caption(caption=f"🎮 Выберите параметры",
-                               parse_mode='HTML', reply_markup=choise_TTT_buttons())
-   
-#Игрок должен подтвердить  
+   await callback.answer("в разработке...")
+  
+
 
 
 

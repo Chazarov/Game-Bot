@@ -1,7 +1,13 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters.callback_data import CallbackData
 
-from TG.game.TicTacToe.kbds import TTT_game_callback_data
+from Game.TTT import strings as TTTStrings
+from Game.TTT.strings import make_start_game_parametrs as mgp_TTT
+
+from Game.Durak import strings 
+from Game.Durak.strings import make_start_game_parametrs as mgp_Durak
+
+from TG.game.kbds import GameStartParametrsCallback
 
 
 
@@ -80,16 +86,24 @@ def main_reply_buttoms(isWorker):
             ], resize_keyboard=True)
     return kbd
 
+
+
+
+#  Выбор игры и поля
+# В данном каллбеке передаются только размер ставки и стартовые параметры игры
 def choise_TTT_buttons():
     kbd = InlineKeyboardMarkup(inline_keyboard = [
             [
-                InlineKeyboardButton(text = "Поля - 3x3 | Ставка - $25", callback_data = TTT_game_callback_data(field = "-", lobbi_id = 0, X = 0, Y = 0, n = 3, m = 3, win_score = 3, bet = 25).pack()),
+                InlineKeyboardButton(text = "Поля - 3x3 | Ставка - $25", callback_data = GameStartParametrsCallback(game_parametrs = 
+                mgp_TTT(n = 3, m = 3, win_score = 3, bet = 25), game_name = TTTStrings.GAME_NAME, bet = 25).pack()),
             ],
             [
-                InlineKeyboardButton(text = "Поля - 5x5 | Ставка - $50", callback_data = TTT_game_callback_data(field = "-", lobbi_id = 0, X = 0, Y = 0, n = 5, m = 5, win_score = 4, bet = 50).pack()),
+                InlineKeyboardButton(text = "Поля - 5x5 | Ставка - $50", callback_data = GameStartParametrsCallback(game_configuration = 
+                mgp_TTT(n = 5, m = 5, win_score = 4, bet = 50), game_name = TTTStrings.GAME_NAME, bet = 50).pack()),
             ],
             [
-                InlineKeyboardButton(text="Поля - 10x10 | Ставка - $100", callback_data = TTT_game_callback_data(field = "-", lobbi_id = 0, X = 0, Y = 0, n = 10, m = 10, win_score = 5, bet = 100).pack()),
+                InlineKeyboardButton(text="Поля - 10x10 | Ставка - $100", callback_data = GameStartParametrsCallback(game_configuration = 
+                mgp_TTT(n = 10, m = 10, win_score = 5, bet = 100), game_name = TTTStrings.GAME_NAME, bet = 100).pack()),
             ],
             [
                 InlineKeyboardButton(text="Назад", callback_data="back_to_gameslist"),
@@ -97,3 +111,6 @@ def choise_TTT_buttons():
         ]
     )
     return kbd
+
+def choise_Durak_buttons():
+    pass
