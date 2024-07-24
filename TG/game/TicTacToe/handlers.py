@@ -22,7 +22,7 @@ from TG.menu.kbds import choise_TTT_buttons
 from TG.pay.kbds import check_pay
 from TG.pay.utils import getInv, getPayUrl
 
-from TG.game.handlers import Game_states
+from TG.game.filters import Game_states
 
 
 #Сменить инициализацию роутера и использование (убрать декораторы, инициализировать роутер после функций)
@@ -53,7 +53,9 @@ router.callback_query.filter(CurrentGameFilter(strings.GAME_NAME), StateFilter(G
 
 # Точка входа в игру. В этой функции задаются основные параметры игры, выстраивается поле и меняются состояния
 # пользователя как внутри базы данных так и в state (FSMContext)
-async def start_game(bot:Bot, message:types.Message, state:FSMContext, session:AsyncSession, start_game_parametrs:str, is_creator:bool, lobby:Lobby, tableau_message_id:str, opponent:User, chat_id:int):
+async def start_game(bot:Bot, message:types.Message, state:FSMContext, session:AsyncSession, start_game_parametrs:str, is_creator:bool, lobby:Lobby, message_to_display_id:int, opponent:User, chat_id:int):
+
+    print(str(start_game_parametrs) + "   " + str(type(start_game_parametrs)))
 
     lobby = await orm_query.get_lobby_by_id(session = session, lobbi_id = lobby.id)
     game = await orm_query.get_game_by_id(session = session, game_name = strings.GAME_NAME, game_id = lobby.game_id)
@@ -61,13 +63,14 @@ async def start_game(bot:Bot, message:types.Message, state:FSMContext, session:A
 
 
     op_tag = opponent.tag if opponent.tag == None else "@" + opponent.tag
-    await bot.edit_message_text(text = f"Ваш противник: {opponent.name}  {op_tag}", chat_id = chat_id, message_id = tableau_message_id)
-    send_message = await message.answer("...")
+    await bot.edit_message_text(text = f"Ваш противник: {opponent.name}  {op_tag}", chat_id = chat_id, message_id = message_to_display_id)
+    message_to_display_2 = await message.answer("...")
+    message_to_display_2_id = message_to_display_2.message_id
 
     if(not is_creator):
-        await orm_query.add_in_game_guest_field_message_id(session = session, lobbi_id = lobby.id, field_message_id = send_message.message_id)
+        await orm_query.add_in_game_guest_field_message_id(session = session, lobbi_id = lobby.id, field_message_id = message_to_display_2_id)
     else:
-        await orm_query.add_in_game_creator_field_message_id(session = session, lobbi_id = lobby.id, field_message_id = send_message.message_id)
+        await orm_query.add_in_game_creator_field_message_id(session = session, lobbi_id = lobby.id, field_message_id = message_to_display_2_id)
 
 
 
@@ -91,29 +94,32 @@ async def start_game(bot:Bot, message:types.Message, state:FSMContext, session:A
             await state.clear()
             await orm_query.set_user_state(session = session, user_id = chat_id, state = USER_STATES.NOT_ACTIVE)
             await lobby.delete()
-            return await bot.edit_message_text(text = f"Соединение с игроком не состоялось(\nПопробуйте еще раз", chat_id = chat_id, message_id = send_message.message_id)
+            return await bot.edit_message_text(text = f"Соединение с игроком не состоялось(\nПопробуйте еще раз", chat_id = chat_id, message_id = message_to_display_2_id)
 
 
 
     game_name, n, m, win_score, bet = strings.get_start_game_parametrs(start_game_parametrs)
     field = f"{strings.SYMBOL_UNDEF}" * n * m
-    letter = ""
+    letter = strings.SYMBOL_X if is_creator else strings.SYMBOL_O
     lobby_id = lobby.id
+    callback_data = TTT_game_callback_data(lobby_id = lobby_id, X = 0, Y = 0, n = n, m = m, win_score = win_score)
 
-    if(is_creator):
-        letter = strings.SYMBOL_X
-    else:
-        letter = strings.SYMBOL_O
-
+    
 
     await state.update_data(letter = letter)
     await state.update_data(opponent_field_message_id = opponent_field_message_id)
     await state.update_data(opponent_id = opponent_id)
+    
     await game.add_field(session = session, field = field)
 
-    callback_data = TTT_game_callback_data(lobby_id = lobby_id, X = 0, Y = 0, n = n, m = m, win_score = win_score)
 
-    await bot.edit_message_text(text = f"Вы играете за {letter}", reply_markup = ttt_game_buttons(callback_data = callback_data, field = field), chat_id = chat_id, message_id = send_message.message_id)
+
+
+    # Разделение на мини-игры происходит через полу game_name в FSMContext. Данный Фильтр определен в TG/game/filters.py
+    # и используется во всех хендлерах, ответственных за непосредственный игровой процесс
+    await state.update_data(game_name = strings.GAME_NAME)
+    await bot.edit_message_text(text = f"Вы играете за {letter}", reply_markup = ttt_game_buttons(callback_data = callback_data, field = field), chat_id = chat_id, message_id = message_to_display_2_id)
+
 
 
 
@@ -123,6 +129,7 @@ async def TTT_playing_callback(callback:types.CallbackQuery, callback_data:TTT_g
     async def end_game():
         await orm_query.set_user_state(session = session, user_id = callback.from_user.id, state = USER_STATES.NOT_ACTIVE)
         await orm_query.set_user_state(session = session, user_id = opponent_id, state = USER_STATES.NOT_ACTIVE)
+        await state.update_data(game_name = "")
         await lobby.delete()
 
     state_data = await state.get_data()
@@ -161,8 +168,9 @@ async def TTT_playing_callback(callback:types.CallbackQuery, callback_data:TTT_g
         await bot.edit_message_text(text =\
         f"Вы проиграли 😔", chat_id = opponent_id, message_id = opponent_field_message_id, reply_markup = finally_buttons())
 
-        await orm_query.del_user_balance(session=session, user_id=opponent_id, amount=int(callback_data.bet))
-        await orm_query.set_user_balance(session=session, user_id=callback.from_user.id, amount=int(float(callback_data.bet)))
+        # Оплата <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,
+        # await orm_query.del_user_balance(session=session, user_id=opponent_id, amount=int(callback_data.bet))
+        # await orm_query.set_user_balance(session=session, user_id=callback.from_user.id, amount=int(float(callback_data.bet)))
 
         await orm_query.add_lose(session=session, user_id=opponent_id)
         await orm_query.add_win(session=session, user_id=callback.from_user.id)
@@ -181,7 +189,7 @@ async def end_game(callback:types.CallbackQuery, state:FSMContext):
     await state.clear()
     await callback.message.edit_reply_markup(reply_markup = None)
 
-#Нужно ограничить этот каллбек(чтобы кнопка никак не могла появиться во время игрового процесса)
+
 @router.callback_query(F.data == "play_more")
 async def play_more(callback:types.CallbackQuery, state:FSMContext):
     await state.clear()

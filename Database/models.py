@@ -62,6 +62,7 @@ class Lobby(Base):
     
 
 class TTT_game(Base):
+    __tablename__ = "Tic tac toe game"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
     # Параметры для визуализации игры 
@@ -96,6 +97,7 @@ class TTT_game(Base):
 
 
 class Durak_game(Base):
+    __tablename__ = "Durak game"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
     

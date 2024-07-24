@@ -11,17 +11,15 @@ class GameBase(CallbackData, prefix = "game"):
     game_name:str
     lobby_id:int
     bet:int
-class TTT_game_callback_data(GameBase):
-    lobby_id:int
+class TTT_game_callback_data(GameBase, prefix = "Tic tac toe game"):
     X:int
     Y:int
     n:int
     m:int
     win_score:int
 
-class Durak_game_callback_data(GameBase):
-    game_name = DURAKstrings.GAME_NAME
-    
+class Durak_game_callback_data(GameBase, prefix = "Durak game"):
+    pass
 
 
 def ttt_game_buttons(cbd:TTT_game_callback_data, field:str):

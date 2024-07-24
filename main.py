@@ -10,7 +10,7 @@ load_dotenv(find_dotenv())
 from Database.engine import as_create_db, session_maker
 from Database.middleweares import DataBaseSession
 
-from TG.game.TicTacToe.handlers import router as game_router
+from TG.game.handlers import router as game_router
 from TG.menu.handlers import router as menu_router
 from TG.pay.handlers import router as pay_router
 

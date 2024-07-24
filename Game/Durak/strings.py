@@ -71,7 +71,7 @@ def make_start_game_parametrs()->str:
     return result
 
 def get_start_game_parametrs(params:str):
-    game_name = map(int, params.split(":")[1:])
+    game_name = map(int, params.split("/")[1:])
     return game_name
 
 

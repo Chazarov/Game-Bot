@@ -98,11 +98,11 @@ def choise_TTT_buttons():
                 mgp_TTT(n = 3, m = 3, win_score = 3, bet = 25), game_name = TTTStrings.GAME_NAME, bet = 25).pack()),
             ],
             [
-                InlineKeyboardButton(text = "Поля - 5x5 | Ставка - $50", callback_data = GameStartParametrsCallback(game_configuration = 
+                InlineKeyboardButton(text = "Поля - 5x5 | Ставка - $50", callback_data = GameStartParametrsCallback(game_parametrs = 
                 mgp_TTT(n = 5, m = 5, win_score = 4, bet = 50), game_name = TTTStrings.GAME_NAME, bet = 50).pack()),
             ],
             [
-                InlineKeyboardButton(text="Поля - 10x10 | Ставка - $100", callback_data = GameStartParametrsCallback(game_configuration = 
+                InlineKeyboardButton(text="Поля - 10x10 | Ставка - $100", callback_data = GameStartParametrsCallback(game_parametrs = 
                 mgp_TTT(n = 10, m = 10, win_score = 5, bet = 100), game_name = TTTStrings.GAME_NAME, bet = 100).pack()),
             ],
             [
