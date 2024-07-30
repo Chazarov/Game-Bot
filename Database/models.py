@@ -78,15 +78,15 @@ class TTT_game(Base):
 
     async def add_creator_field_message_id(self, session:AsyncSession, field_message_id:int):
         self.creator_field_message_id = field_message_id
-        session.commit()
+        await session.commit()
     
     async def add_guest_field_message_id(self, session:AsyncSession, field_message_id:int):
         self.creator_field_message_id = field_message_id
-        session.commit()
+        await session.commit()
 
     async def set_field(self, session:AsyncSession, field:str):
         self.field = field
-        session.commit()
+        await session.commit()
         
 
     
@@ -106,8 +106,8 @@ class Durak_game(Base):
     guest_display_message_2: Mapped[int] = mapped_column(Integer, nullable = True)
     guest_display_message_3: Mapped[int] = mapped_column(Integer, nullable = True)
 
-    creator_fields_are_filled_in = Mapped[bool] = mapped_column(Boolean, default = False)
-    guest_fields_are_filled_in = Mapped[bool] = mapped_column(Boolean, default = False) 
+    creator_fields_are_filled_in: Mapped[bool] = mapped_column(Boolean, default = False)
+    guest_fields_are_filled_in: Mapped[bool] = mapped_column(Boolean, default = False) 
 
     current_game_data: Mapped[str] = mapped_column(Text, nullable = True)
 

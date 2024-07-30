@@ -76,6 +76,8 @@ async def start_game(bot:Bot, chat_id:int, state:FSMContext, session:AsyncSessio
     opponent_field_message_id = None
     try_count = 0
     while(opponent_field_message_id == None):
+        lobby = await orm_query.get_lobby_by_id(session = session, lobby_id = lobby.id)
+        game = await orm_query.get_game_by_id(session = session, game_name = strings.GAME_NAME, game_id = game.id)
         await session.refresh(game) # Обновление сессии для получения актуальный на данный момент информации
         await session.refresh(lobby)
         if(is_creator):
@@ -85,6 +87,7 @@ async def start_game(bot:Bot, chat_id:int, state:FSMContext, session:AsyncSessio
             opponent_field_message_id = game.creator_field_message_id
             opponent_id = lobby.creator_id
 
+        print("Try get filled fields: " + str(try_count))
         try_count += 1
         await asyncio.sleep(system_parametrs.WAITING_UPDATE_TIME)
         if(try_count > system_parametrs.MAXIMUM_TRY_COUNT):
@@ -94,11 +97,9 @@ async def start_game(bot:Bot, chat_id:int, state:FSMContext, session:AsyncSessio
             return await bot.edit_message_text(text = f"Соединение с игроком не состоялось(\nПопробуйте еще раз", chat_id = chat_id, message_id = message_to_display.message_id)
 
 
-    message_to_display_2 = await bot.send_message(chat_id = chat_id, text = "...")
-    message_to_display_2_id = message_to_display_2.message_id
-
 
     game_name, n, m, win_score, bet = strings.get_start_game_parametrs(start_game_parametrs)
+    n, m = int(n), int(m)
     field = f"{strings.SYMBOL_UNDEF}" * n * m
     letter = strings.SYMBOL_X if is_creator else strings.SYMBOL_O
     lobby_id = lobby.id
@@ -118,7 +119,7 @@ async def start_game(bot:Bot, chat_id:int, state:FSMContext, session:AsyncSessio
     # Разделение на мини-игры происходит через поле game_name в FSMContext. Данный Фильтр определен в TG/game/filters.py
     # и используется во всех хендлерах, ответственных за непосредственный игровой процесс
     await state.update_data(game_name = strings.GAME_NAME)
-    await bot.edit_message_text(text = f"Вы играете за {letter}", reply_markup = ttt_game_buttons(callback_data = callback_data, field = field), chat_id = chat_id, message_id = message_to_display_2_id)
+    await bot.edit_message_text(text = f"Вы играете за {letter}", reply_markup = ttt_game_buttons(callback_data = callback_data, field = field), chat_id = chat_id, message_id = message_to_display_2.message_id)
 
 
 
