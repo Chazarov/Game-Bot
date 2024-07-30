@@ -51,8 +51,6 @@ class Lobby(Base):
     guest_id: Mapped[int] = mapped_column(Integer, nullable = False)
 
     game_name: Mapped[str] = mapped_column(String(40), nullable = False)
-    #Параметры , по которым будет происходить поиск противника
-    general_game_parametrs: Mapped[str] = mapped_column(Text, nullable = False)
     
     # Параметры самой игры представлены отдельным объектом, который хранится в таблице
     # соответствующей игры, где имеет собственный id 
@@ -68,15 +66,15 @@ class TTT_game(Base):
     # Параметры для визуализации игры 
     # (id сообщений, которые будут представлять собой игровое поля для обоих 
     # игроков)
-    creator_field_message_id: Mapped[int] = mapped_column(Integer, nullable = False)
-    guest_field_message_id: Mapped[int] = mapped_column(Integer, nullable = False)
+    creator_field_message_id: Mapped[int] = mapped_column(Integer, nullable = True)
+    guest_field_message_id: Mapped[int] = mapped_column(Integer, nullable = True)
 
     # Параметры игры
     # размерность игрового поля
-    n: Mapped[int] = mapped_column(Integer, nullable = False)
-    m: Mapped[int] = mapped_column(Integer, nullable = False)
+    n: Mapped[int] = mapped_column(Integer, nullable = True)
+    m: Mapped[int] = mapped_column(Integer, nullable = True)
 
-    field: Mapped[str] = mapped_column(Text, nullable = False)
+    field: Mapped[str] = mapped_column(Text, nullable = True)
 
     async def add_creator_field_message_id(self, session:AsyncSession, field_message_id:int):
         self.creator_field_message_id = field_message_id
@@ -100,6 +98,45 @@ class Durak_game(Base):
     __tablename__ = "Durak game"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
+    creator_display_message_1: Mapped[int] = mapped_column(Integer, nullable = True)
+    creator_display_message_2: Mapped[int] = mapped_column(Integer, nullable = True)
+    creator_display_message_3: Mapped[int] = mapped_column(Integer, nullable = True)
+
+    guest_display_message_1: Mapped[int] = mapped_column(Integer, nullable = True)
+    guest_display_message_2: Mapped[int] = mapped_column(Integer, nullable = True)
+    guest_display_message_3: Mapped[int] = mapped_column(Integer, nullable = True)
+
+    creator_fields_are_filled_in = Mapped[bool] = mapped_column(Boolean, default = False)
+    guest_fields_are_filled_in = Mapped[bool] = mapped_column(Boolean, default = False) 
+
+    current_game_data: Mapped[str] = mapped_column(Text, nullable = True)
+
+
+
+
+
+    async def set_display_messages_creator(self, session:AsyncSession, message1, message2, message3):
+        self.creator_display_message_1 = message1
+        self.creator_display_message_2 = message2
+        self.creator_display_message_3 = message3
+
+        self.creator_fields_are_filled_in = True
+
+        await session.commit()
+
+    async def set_display_messages_guest(self, session:AsyncSession, message1, message2, message3):
+        self.guest_display_message_1 = message1
+        self.guest_display_message_2 = message2
+        self.guest_display_message_3 = message3
+
+        self.guest_fields_are_filled_in = True
+
+        await session.commit()
+
+    async def set_current_game_data(self, session:AsyncSession, game_data:str):
+        self.current_game_data = game_data
+
+        await session.commit()
     
 
     

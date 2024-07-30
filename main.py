@@ -27,10 +27,11 @@ dp.include_router(pay_router)
 
 
 async def on_startup(bot):
+    print("Bot was started.")
     await as_create_db()
 
 async def on_shutdown(bot):
-    print("бот лег")
+    print("Bot was down.")
 
 
 user_commands = [

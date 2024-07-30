@@ -85,11 +85,10 @@ async def command_profile(callback: CallbackQuery, session:AsyncSession):
 
 #Здесь меняется состояние и в данные FSMContext добавляется название игры , по которому далее будет происходить фильтрация 
 # и разделение хендлеров на придожения различных игр (фильтр смотреть в TG/Gm)
-#@router.callback_query(F.data == "ttt_game")
+@router.callback_query(F.data == "ttt_game")
 async def choise_TTT_game(callback: CallbackQuery, session:AsyncSession, state:FSMContext):
     await callback.message.edit_caption(caption=f"🎮 Выберите параметры",
                                parse_mode='HTML', reply_markup=choise_TTT_buttons())
-    print("command choise TTT gp current state: " + str(await state.get_state()))
 
 @router.callback_query(F.data == "durak_game")
 async def choise_Durak_game(callback: CallbackQuery, session:AsyncSession):

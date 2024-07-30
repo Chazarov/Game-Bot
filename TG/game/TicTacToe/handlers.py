@@ -53,24 +53,22 @@ router.callback_query.filter(CurrentGameFilter(strings.GAME_NAME), StateFilter(G
 
 # Точка входа в игру. В этой функции задаются основные параметры игры, выстраивается поле и меняются состояния
 # пользователя как внутри базы данных так и в state (FSMContext)
-async def start_game(bot:Bot, message:types.Message, state:FSMContext, session:AsyncSession, start_game_parametrs:str, is_creator:bool, lobby:Lobby, message_to_display_id:int, opponent:User, chat_id:int):
+async def start_game(bot:Bot, chat_id:int, state:FSMContext, session:AsyncSession, start_game_parametrs:str, is_creator:bool, lobby:Lobby, opponent:User):
 
-    print(str(start_game_parametrs) + "   " + str(type(start_game_parametrs)))
-
-    lobby = await orm_query.get_lobby_by_id(session = session, lobbi_id = lobby.id)
+    
+    lobby = await orm_query.get_lobby_by_id(session = session, lobby_id = lobby.id)
     game = await orm_query.get_game_by_id(session = session, game_name = strings.GAME_NAME, game_id = lobby.game_id)
-
-
-
     op_tag = opponent.tag if opponent.tag == None else "@" + opponent.tag
-    await bot.edit_message_text(text = f"Ваш противник: {opponent.name}  {op_tag}", chat_id = chat_id, message_id = message_to_display_id)
-    message_to_display_2 = await message.answer("...")
-    message_to_display_2_id = message_to_display_2.message_id
+
+
+    message_to_display = await bot.send_message(chat_id = chat_id, text = f"Ваш противник: {opponent.name}  {op_tag}")
+    message_to_display_2 = await bot.send_message(chat_id = chat_id, text = "...")
+
 
     if(not is_creator):
-        await orm_query.add_in_game_guest_field_message_id(session = session, lobbi_id = lobby.id, field_message_id = message_to_display_2_id)
+        await game.add_creator_field_message_id(session = session, field_message_id = message_to_display_2.message_id)
     else:
-        await orm_query.add_in_game_creator_field_message_id(session = session, lobbi_id = lobby.id, field_message_id = message_to_display_2_id)
+        await game.add_guest_field_message_id(session = session, field_message_id = message_to_display_2.message_id)
 
 
 
@@ -78,9 +76,8 @@ async def start_game(bot:Bot, message:types.Message, state:FSMContext, session:A
     opponent_field_message_id = None
     try_count = 0
     while(opponent_field_message_id == None):
-        lobby = await orm_query.get_lobby_by_id(session = session, lobbi_id = lobby.id)
-        game = await orm_query.get_game_by_id(session = session, game_name = strings.GAME_NAME, game_id = lobby.game_id)
         await session.refresh(game) # Обновление сессии для получения актуальный на данный момент информации
+        await session.refresh(lobby)
         if(is_creator):
             opponent_field_message_id = game.guest_field_message_id
             opponent_id = lobby.guest_id
@@ -94,8 +91,11 @@ async def start_game(bot:Bot, message:types.Message, state:FSMContext, session:A
             await state.clear()
             await orm_query.set_user_state(session = session, user_id = chat_id, state = USER_STATES.NOT_ACTIVE)
             await lobby.delete()
-            return await bot.edit_message_text(text = f"Соединение с игроком не состоялось(\nПопробуйте еще раз", chat_id = chat_id, message_id = message_to_display_2_id)
+            return await bot.edit_message_text(text = f"Соединение с игроком не состоялось(\nПопробуйте еще раз", chat_id = chat_id, message_id = message_to_display.message_id)
 
+
+    message_to_display_2 = await bot.send_message(chat_id = chat_id, text = "...")
+    message_to_display_2_id = message_to_display_2.message_id
 
 
     game_name, n, m, win_score, bet = strings.get_start_game_parametrs(start_game_parametrs)
@@ -115,7 +115,7 @@ async def start_game(bot:Bot, message:types.Message, state:FSMContext, session:A
 
 
 
-    # Разделение на мини-игры происходит через полу game_name в FSMContext. Данный Фильтр определен в TG/game/filters.py
+    # Разделение на мини-игры происходит через поле game_name в FSMContext. Данный Фильтр определен в TG/game/filters.py
     # и используется во всех хендлерах, ответственных за непосредственный игровой процесс
     await state.update_data(game_name = strings.GAME_NAME)
     await bot.edit_message_text(text = f"Вы играете за {letter}", reply_markup = ttt_game_buttons(callback_data = callback_data, field = field), chat_id = chat_id, message_id = message_to_display_2_id)
