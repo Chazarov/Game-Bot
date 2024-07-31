@@ -104,12 +104,13 @@ async def get_lobby_by_invitation(session:AsyncSession, guest_id:int):
 async def create_lobby(session:AsyncSession, creator_id:int, guest_id:int, bet:int, game_name:str, game_start_parametrs:str):
     game_obj = await create_game(session = session, game_name = game_name, game_parametrs = game_start_parametrs)
 
+    print("lobby was created!")
 
     obj = Lobby(
         game_name = game_name,
+        game_id = game_obj.id,
         creator_id = creator_id,
         guest_id = guest_id,
-        game_id = game_obj.id,
         bet = bet
     )
 
@@ -134,9 +135,7 @@ async def get_game_by_id(session:AsyncSession, game_name:str, game_id:int):
 
 async def create_game(session:AsyncSession, game_name:str, game_parametrs:str):
     if(game_name == TTTStrings.GAME_NAME):
-        obj = TTT_game(
-            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        )
+        obj = TTT_game()
     elif(game_name == DurakStrings.GAME_NAME):
         obj = Durak_game(
             #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

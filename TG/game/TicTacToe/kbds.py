@@ -11,18 +11,19 @@ class GameBase(CallbackData, prefix = "game"):
     game_name:str
     lobby_id:int
     bet:int
-class TTT_game_callback_data(GameBase, prefix = "Tic tac toe game"):
+class TTT_game_callback_data(CallbackData, prefix = "Tic tac toe game"):
+    lobby_id:int
     X:int
     Y:int
     n:int
     m:int
     win_score:int
 
-class Durak_game_callback_data(GameBase, prefix = "Durak game"):
+class Durak_game_callback_data(CallbackData, prefix = "Durak game"):
     pass
 
 
-def ttt_game_buttons(cbd:TTT_game_callback_data, field:str):
+def     ttt_game_buttons(cbd:TTT_game_callback_data, field:str):
     kbd = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text = field[y*cbd.m + x],  callback_data = cbd.pack())\
           for x in range(cbd.m)] for y in range(cbd.n)

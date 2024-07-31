@@ -15,6 +15,7 @@ class Base(DeclarativeBase):
     updated: Mapped[DateTime] = mapped_column(DateTime, default = func.now())
 
     async def delete(self, session:AsyncSession):
+        print(str(type(self)) + "  was deleted")
         await session.delete(self)
         await session.commit()
         
@@ -77,11 +78,13 @@ class TTT_game(Base):
     field: Mapped[str] = mapped_column(Text, nullable = True)
 
     async def add_creator_field_message_id(self, session:AsyncSession, field_message_id:int):
+        print("add creator field")
         self.creator_field_message_id = field_message_id
         await session.commit()
     
     async def add_guest_field_message_id(self, session:AsyncSession, field_message_id:int):
-        self.creator_field_message_id = field_message_id
+        print("add guest field")
+        self.guest_field_message_id = field_message_id
         await session.commit()
 
     async def set_field(self, session:AsyncSession, field:str):

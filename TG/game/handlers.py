@@ -91,11 +91,12 @@ async def start_game(callback:types.CallbackQuery, callback_data:GameStartParame
 
     async def broke_connection():
         print(">>>>> Some went wrong + " + str(e))
+
         if(lobby != None):
             await lobby.delete(session = session)
         await state.clear()
         await orm_query.set_user_state(session = session, user_id = chat_id, state = USER_STATES.NOT_ACTIVE)
-        await bot.edit_message_text(text = f"Подключение сорвалось 😢. Попробуйте начать игру еще раз", chat_id = chat_id, message_id = message_to_display_id)
+        await bot.send_message(text = f"Подключение сорвалось 😢. Попробуйте начать игру еще раз", chat_id = chat_id)
 
 
     message = callback.message
@@ -126,55 +127,54 @@ async def start_game(callback:types.CallbackQuery, callback_data:GameStartParame
     await orm_query.set_user_state(session = session, user_id = chat_id, state = USER_STATES.IN_GAME)
     await state.set_state(Game_states.In_game)
 
-    try:
-        # Проверка для профилактики ошибки создания двух комнат(lobby) с одним и тем же пользователем
-        # (пользователь был приглашен в комнату другого игрока, пока для него создавалась собственная комната)
-        another_lobby = await orm_query.get_lobby_by_invitation(session = session, guest_id = chat_id)
-        message_to_display = await message.answer("...")
-        message_to_display_id =message_to_display.message_id
-
-        if(another_lobby != None):
-            lobby = another_lobby
-
-        if(lobby != None):
-            is_creator = False
-            opponent_id = lobby.creator_id
-            opponent = await orm_query.get_user_by_id(session = session, user_id = opponent_id)
-
-        elif(opponent != None):
-            is_creator = True
-
-            #Почему то ошибки связанные с базой данных не всегда корректно обрабатываются try except. Придумать что - нибудь на замену      <<<<<<<<<<<<<<<<<
-            lobby = await orm_query.create_lobby(session = session, creator_id = chat_id, guest_id = opponent.id, bet = callback_data.bet, game_name = callback_data.game_name, game_start_parametrs = callback_data.game_parametrs)
-            
-        else:
-            await orm_query.set_user_state(session = session, user_id = chat_id, state = USER_STATES.NOT_ACTIVE)
-            return await bot.edit_message_text(text = f"К сожалению в лобби сейчас нет игроков 😢\nпопробуйте еще раз позже", chat_id = chat_id, message_id = message_to_display_id)
+# try:
 
 
+    # Проверка для профилактики ошибки создания двух комнат(lobby) с одним и тем же пользователем
+    # (пользователь был приглашен в комнату другого игрока, пока для него создавалась собственная комната)
+    another_lobby = await orm_query.get_lobby_by_invitation(session = session, guest_id = chat_id)
+
+    if(another_lobby != None):
+        lobby = another_lobby
+
+    if(lobby != None):
+        is_creator = False
+        opponent_id = lobby.creator_id
+        opponent = await orm_query.get_user_by_id(session = session, user_id = opponent_id)
+
+    elif(opponent != None):
+        is_creator = True
+
+        #Почему то ошибки связанные с базой данных не всегда корректно обрабатываются try except. Придумать что - нибудь на замену      <<<<<<<<<<<<<<<<<
+        lobby = await orm_query.create_lobby(session = session, creator_id = chat_id, guest_id = opponent.id, bet = callback_data.bet, game_name = callback_data.game_name, game_start_parametrs = callback_data.game_parametrs)
+        
+    else:
+        await orm_query.set_user_state(session = session, user_id = chat_id, state = USER_STATES.NOT_ACTIVE)
+        return await bot.send_message(text = f"К сожалению в лобби сейчас нет игроков 😢\nпопробуйте еще раз позже", chat_id = chat_id)
 
 
 
-        #№2 - Синхронизация параметров игры
-        # В нутри функций TTT_Start_Game и др Происходит ожидание заполнения всех данных в комнате: 
-        # Ветвление на отдельные игры
-        await session.refresh(lobby)
-        if(lobby == None):
-            return await broke_connection()
 
 
-        if(callback_data.game_name == TTTStrings.GAME_NAME):
-            await TTT_Start_Game(bot = bot, chat_id = chat_id, state = state, session = session, start_game_parametrs = callback_data.game_parametrs, is_creator = is_creator, lobby = lobby, opponent = opponent)
-        elif(callback_data.game_name == DurakStrings.GAME_NAME):
-            pass 
+    #№2 - Синхронизация параметров игры
+    # В нутри функций TTT_Start_Game и др Происходит ожидание заполнения всех данных в комнате: 
+    # Ветвление на отдельные игры
+    await session.refresh(lobby)
+    if(lobby == None):
+        return await broke_connection()
+
+    if(callback_data.game_name == TTTStrings.GAME_NAME):
+        await TTT_Start_Game(bot = bot, chat_id = chat_id, state = state, session = session, start_game_parametrs = callback_data.game_parametrs, is_creator = is_creator, lobby = lobby, opponent = opponent)
+    elif(callback_data.game_name == DurakStrings.GAME_NAME):
+        pass 
 
         
 
 
 
-    except Exception as e:
-        print(">>>>>>>>>>>> Make game exception: " + str(e))
-        return await broke_connection()
+    # except Exception as e:
+    #     print(">>>>>>>>>>>> Make game exception: " + str(e))
+    #     return await broke_connection()
 
 
 
@@ -219,7 +219,7 @@ async def find_opponent_or_invitation(bot:Bot, session:AsyncSession, chat_id:str
 
         await asyncio.sleep(1)
 
-    message_to_display.delete()
+    await message_to_display.delete()
     return opponent, lobby
 
 

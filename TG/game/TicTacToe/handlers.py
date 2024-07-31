@@ -10,10 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from TG import system_parametrs
 
 from Database import orm_query
-from Database.models import USER_STATES, User, Lobby
+from Database.models import USER_STATES, User, Lobby, TTT_game
 
 from Game.TTT import strings
-from Game.TTT import game
+from Game.TTT import game as game_rules
 
 from TG.game.filters import CurrentGameFilter
 
@@ -53,8 +53,9 @@ router.callback_query.filter(CurrentGameFilter(strings.GAME_NAME), StateFilter(G
 
 # Точка входа в игру. В этой функции задаются основные параметры игры, выстраивается поле и меняются состояния
 # пользователя как внутри базы данных так и в state (FSMContext)
-async def start_game(bot:Bot, chat_id:int, state:FSMContext, session:AsyncSession, start_game_parametrs:str, is_creator:bool, lobby:Lobby, opponent:User):
+async def start_game(bot:Bot, chat_id:int, state:FSMContext, session:AsyncSession, start_game_parametrs:str, is_creator:bool, lobby:Lobby, opponent:User)->list[types.Message]:
 
+    print("is creator " + str(chat_id) + " => " + str(is_creator))
     
     lobby = await orm_query.get_lobby_by_id(session = session, lobby_id = lobby.id)
     game = await orm_query.get_game_by_id(session = session, game_name = strings.GAME_NAME, game_id = lobby.game_id)
@@ -65,7 +66,7 @@ async def start_game(bot:Bot, chat_id:int, state:FSMContext, session:AsyncSessio
     message_to_display_2 = await bot.send_message(chat_id = chat_id, text = "...")
 
 
-    if(not is_creator):
+    if(is_creator):
         await game.add_creator_field_message_id(session = session, field_message_id = message_to_display_2.message_id)
     else:
         await game.add_guest_field_message_id(session = session, field_message_id = message_to_display_2.message_id)
@@ -87,16 +88,15 @@ async def start_game(bot:Bot, chat_id:int, state:FSMContext, session:AsyncSessio
             opponent_field_message_id = game.creator_field_message_id
             opponent_id = lobby.creator_id
 
-        print("Try get filled fields: " + str(try_count))
         try_count += 1
         await asyncio.sleep(system_parametrs.WAITING_UPDATE_TIME)
         if(try_count > system_parametrs.MAXIMUM_TRY_COUNT):
             await state.clear()
             await orm_query.set_user_state(session = session, user_id = chat_id, state = USER_STATES.NOT_ACTIVE)
-            await lobby.delete()
-            return await bot.edit_message_text(text = f"Соединение с игроком не состоялось(\nПопробуйте еще раз", chat_id = chat_id, message_id = message_to_display.message_id)
+            await lobby.delete(session = session)
+            await bot.edit_message_text(text = f"Соединение с игроком не состоялось(\nПопробуйте еще раз", chat_id = chat_id, message_id = message_to_display.message_id)
 
-
+    print("Connection succeses")
 
     game_name, n, m, win_score, bet = strings.get_start_game_parametrs(start_game_parametrs)
     n, m = int(n), int(m)
@@ -111,7 +111,7 @@ async def start_game(bot:Bot, chat_id:int, state:FSMContext, session:AsyncSessio
     await state.update_data(opponent_field_message_id = opponent_field_message_id)
     await state.update_data(opponent_id = opponent_id)
     
-    await game.add_field(session = session, field = field)
+    await game.set_field(session = session, field = field)
 
 
 
@@ -119,8 +119,8 @@ async def start_game(bot:Bot, chat_id:int, state:FSMContext, session:AsyncSessio
     # Разделение на мини-игры происходит через поле game_name в FSMContext. Данный Фильтр определен в TG/game/filters.py
     # и используется во всех хендлерах, ответственных за непосредственный игровой процесс
     await state.update_data(game_name = strings.GAME_NAME)
-    await bot.edit_message_text(text = f"Вы играете за {letter}", reply_markup = ttt_game_buttons(callback_data = callback_data, field = field), chat_id = chat_id, message_id = message_to_display_2.message_id)
-
+    await bot.edit_message_text(text = f"Вы играете за {letter}", reply_markup = ttt_game_buttons(cbd = callback_data, field = field), chat_id = chat_id, message_id = message_to_display_2.message_id)
+    
 
 
 
@@ -131,7 +131,8 @@ async def TTT_playing_callback(callback:types.CallbackQuery, callback_data:TTT_g
         await orm_query.set_user_state(session = session, user_id = callback.from_user.id, state = USER_STATES.NOT_ACTIVE)
         await orm_query.set_user_state(session = session, user_id = opponent_id, state = USER_STATES.NOT_ACTIVE)
         await state.update_data(game_name = "")
-        await lobby.delete()
+        await lobby.delete(session = session)
+        await game.delete(session = session)
 
     state_data = await state.get_data()
     cbd = callback_data
@@ -144,7 +145,7 @@ async def TTT_playing_callback(callback:types.CallbackQuery, callback_data:TTT_g
     opponent_field_message_id = state_data["opponent_field_message_id"]
     opponent_id = state_data["opponent_id"]
 
-    if(not game.can_walk(symbol = letter, field = game.field)):
+    if(not game_rules.can_walk(symbol = letter, field = game.field)):
         return await callback.answer("Сейчас не ваш ход🚫")
     
     if(field[cbd.Y][cbd.X] != strings.SYMBOL_UNDEF):
@@ -154,11 +155,11 @@ async def TTT_playing_callback(callback:types.CallbackQuery, callback_data:TTT_g
     field_line = "".join(field)
 
     await game.set_field(session = session, field = field_line)
-    await callback.message.edit_reply_markup(reply_markup = ttt_game_buttons(callback_data = cbd, field = field_line))
+    await callback.message.edit_reply_markup(reply_markup = ttt_game_buttons(cbd = cbd, field = field_line))
     await bot.edit_message_reply_markup(chat_id = opponent_id, message_id = opponent_field_message_id, \
-                                        reply_markup = ttt_game_buttons(callback_data = cbd, field = field_line))
+                                        reply_markup = ttt_game_buttons(cbd = cbd, field = field_line))
     
-    result = game.is_win(FIELD = field, win_score = cbd.win_score)
+    result = game_rules.is_win(FIELD = field, win_score = cbd.win_score)
     
     if(result == 'ничья'):
         await bot.edit_message_text(text =\
