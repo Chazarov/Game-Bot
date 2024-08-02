@@ -112,6 +112,9 @@ class Durak_game(Base):
     creator_fields_are_filled_in: Mapped[bool] = mapped_column(Boolean, default = False)
     guest_fields_are_filled_in: Mapped[bool] = mapped_column(Boolean, default = False) 
 
+    # Чтобы каждый раз не распаковывать данные игры очередность хода вынесена в объект игровой конфигурации
+    turn: Mapped[int] = mapped_column(Integer, default = 0)
+
     current_game_data: Mapped[str] = mapped_column(Text, nullable = True)
 
 
@@ -136,8 +139,9 @@ class Durak_game(Base):
 
         await session.commit()
 
-    async def set_current_game_data(self, session:AsyncSession, game_data:str):
+    async def set_current_game_data(self, session:AsyncSession, game_data:str, turn:int):
         self.current_game_data = game_data
+        self.turn = turn
 
         await session.commit()
     

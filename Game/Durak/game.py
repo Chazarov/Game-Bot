@@ -43,7 +43,8 @@ class Durak():
         self.field = []  # Игровое поле
         self.card_pool = [] # Карты , которые уже покрыты, но все еще остаются на поле
 
-    
+        cards = DECK
+        self.give_cards()
 
 
 
@@ -199,9 +200,15 @@ class Durak():
         self.field = "F "
         self.card_pool = "CP "
 
+def get_card_visual(card:Card, mini:bool):
+    return KARDS_SET[card.suit][card.power]
 
 
-            
+DECK = [
+    Card(power, suit)
+    for suit in [HEARTS_SUIT, DIAMONDS_SUIT, CLUBS_SUIT, SPADES_SUIT]
+    for power in range(6, 15)
+]
 
         
 

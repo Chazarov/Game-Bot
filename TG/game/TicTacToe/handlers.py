@@ -32,10 +32,10 @@ router.message.filter(CurrentGameFilter(strings.GAME_NAME), StateFilter(Game_sta
 router.callback_query.filter(CurrentGameFilter(strings.GAME_NAME), StateFilter(Game_states.In_game))
 
 
-#Фильтрация хендлеров происходит через поле game_name в хранилище state.data (фильтр описан в TG/game/filters.py)так state
+# Фильтрация хендлеров для внутриигрового процесса  происходит через поле game_name в хранилище state.data (фильтр описан в TG/game/filters.py)так state
 # задается в меню сразу после выбора параметров игры 
 
-
+# Данные для игры распределены следующим образом:
 #     1) В объекте комнаты (база данных):
 # поле (так как в объектах, наследуемых от Callback_data, ограничение на размер данных).
 #     2) В данных машины состояний (FSMcontest) (оперативная память FSM):
@@ -180,7 +180,7 @@ async def TTT_playing_callback(callback:types.CallbackQuery, callback_data:TTT_g
 
         await callback.message.edit_text(text =\
                 f"Победа!🏆\n"
-                f"Ваш выигрыш: {str(float(callback_data.bet))} USDT",
+                f"Ваш выигрыш: {str(float(lobby.bet))} USDT",
             reply_markup=finally_buttons())
 
         await end_game()

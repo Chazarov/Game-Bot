@@ -23,9 +23,9 @@ class Durak_game_callback_data(CallbackData, prefix = "Durak game"):
     pass
 
 
-def     ttt_game_buttons(cbd:TTT_game_callback_data, field:str):
+def ttt_game_buttons(cbd:TTT_game_callback_data, field:str):
     kbd = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text = field[y*cbd.m + x],  callback_data = cbd.pack())\
+        [InlineKeyboardButton(text = field[y*cbd.m + x],  callback_data = TTT_game_callback_data(lobby_id = cbd.lobby_id, X = x, Y = y, n = cbd.n, m = cbd.m, win_score = cbd.win_score).pack())\
           for x in range(cbd.m)] for y in range(cbd.n)
     ])
 

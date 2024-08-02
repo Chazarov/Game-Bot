@@ -5,8 +5,8 @@ GAME_NAME = "DURAK"
 WIN = "ПОБЕДА!!!"
 
 HEARTS_SUIT = "♥️"
-DIAMONTS_SUIT = "♦️"
-CLULBS_SUIT = "♣️"
+DIAMONDS_SUIT = "♦️"
+CLUBS_SUIT = "♣️"
 SPADES_SUIT = "♠️"
 
 # Errors:
@@ -31,7 +31,7 @@ KARDS_SET = {
         13: "|♥️|\n|K|",
         14: "|♥️|\n|A|",
     },
-    DIAMONTS_SUIT: {
+    DIAMONDS_SUIT: {
         6: "|♦️|\n|6|",
         7: "|♦️|\n|7|",
         8: "|♦️|\n|8|",
@@ -42,7 +42,7 @@ KARDS_SET = {
         13: "|♦️|\n|K|",
         14: "|♦️|\n|A|",
     },
-    CLULBS_SUIT: {
+    CLUBS_SUIT: {
         6: "|♣️|\n|6|",
         7: "|♣️|\n|7|",
         8: "|♣️|\n|8|",
