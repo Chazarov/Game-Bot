@@ -6,7 +6,12 @@ from Game.Durak.interface import draw_choisen_card, draw_card
 
 from TG.my_scripts_lib import organaizer
 
+
+
+
+
 CONFIRM_CALLBACK = "confirm_callback"
+ACTION_BUTTON_CALLBACK = "action_button_callback"
 class FieldCallback(CallbackData, prefix = "field_callback"):
     selected_number:int
 

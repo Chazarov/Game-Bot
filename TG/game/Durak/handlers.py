@@ -18,7 +18,7 @@ from Game.Durak import strings
 from Game.Durak import game
 from Game.Durak import interface
 
-from TG.game.Durak.kbds import field_buttons, deck_buttons, FieldCallback, CartNavigationCallback
+from TG.game.Durak.kbds import field_buttons, deck_buttons, FieldCallback, CartNavigationCallback, CONFIRM_CALLBACK, ACTION_BUTTON_CALLBACK
 
 router = Router()
 
@@ -39,9 +39,9 @@ router.callback_query.filter(CurrentGameFilter(game_name = strings.GAME_NAME))
     #               opponent_id - id противника,
     #               opponent_field_messages - id сообщений, которые являются игровым полем у противника
     #           А так же игровые данные:
-    #               player_number - номер игрока 0 или 1 
-    #               choisen_card - Текущая выбранная карта на поле(карта, которая будет бита)
+    #               player_number - номер игрока 0 или 1  
     #               player_deck - колода игрока в виде списка list[list[int ,str]] - сила и масть карты
+    #               choisen_card - Текущая выбранная карта на поле(карта, которая будет бита)
     #               current_deck_cart - индекс карты в колоде игрока, которая выбрана(отображается) в данный момент
 
 
@@ -134,6 +134,33 @@ async def card_navigation_callback(callback:types.CallbackQuery, callback_data:C
 
     if((len(player_deck) > callback_data.next_card) and (callback_data >= 0)):
         await state.update_data(choisen_card = callback_data.next_card)
+
+
+
+
+
+@router.callback_query(F.data == ACTION_BUTTON_CALLBACK)
+async def action_button_callback(callback:types.CallbackQuery, state:FSMContext, session:AsyncSession):
+
+    fsm_data = await state.get_data()
+    lobby_id = fsm_data["lobby_id"]
+    lobby = await orm_query.get_lobby_by_id(session = session, lobby_id = lobby_id)
+    game = await orm_query.get_game_by_id(session = session, game_name = strings.GAME_NAME, game_id = lobby.game_id)
+    
+    
+
+
+
+
+
+# При подтверждении хода происходит перенос данных из машины состояний в объект базы данных
+@router.callback_query(F.data == CONFIRM_CALLBACK)
+async def confirm_button_callback(callbak:types.CallbackQuery, state:FSMContext, session:AsyncSession):
+
+    fsm_data = await state.get_data()
+
+
+
 
 
 
