@@ -1,13 +1,20 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters.callback_data import CallbackData
 
-from Game.Durak.game import Card, get_card_visual
+from Game.Durak.game import Card
+from Game.Durak.interface import draw_choisen_card, draw_card
 
 from TG.my_scripts_lib import organaizer
 
-
+CONFIRM_CALLBACK = "confirm_callback"
 class FieldCallback(CallbackData, prefix = "field_callback"):
     selected_number:int
+
+class CartNavigationCallback(CallbackData, prefix = ""):
+    next_card:int
+    
+
+
 
 
 
@@ -22,7 +29,6 @@ def deck_buttons(carts_quality:int, attak:bool = None):
     elif(attak == False):
         middle_button_text = "Покрыть"
 
-
     kbd = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text = "<<", callback_data = "next_card"),
@@ -36,8 +42,10 @@ def deck_buttons(carts_quality:int, attak:bool = None):
 
     return kbd
 
-def field_buttons(cards:list[Card]):
-    buttons = [InlineKeyboardButton(text = get_card_visual(cards[i], True), callback_data = FieldCallback(selected_number = i).pack()) for i in range(len(cards))]
+
+
+def field_buttons(lobby_id:int, cards:list[Card], choisen:int = None):
+    buttons = [InlineKeyboardButton(text = draw_card(cards[i], True) if i != choisen else draw_choisen_card(cards[i]), callback_data = FieldCallback(selected_number = i, lobby_id = lobby_id).pack()) for i in range(len(cards))]
     kbd = InlineKeyboardMarkup(
         inline_keyboard=organaizer(buttons, page = 0, page_size = 2, line_size = 3)
     )

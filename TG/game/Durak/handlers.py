@@ -18,20 +18,33 @@ from Game.Durak import strings
 from Game.Durak import game
 from Game.Durak import interface
 
-from TG.game.Durak.kbds import field_buttons, deck_buttons
+from TG.game.Durak.kbds import field_buttons, deck_buttons, FieldCallback, CartNavigationCallback
 
 router = Router()
 
 router.message.filter(CurrentGameFilter(game_name = strings.GAME_NAME))
 router.callback_query.filter(CurrentGameFilter(game_name = strings.GAME_NAME))
 
-# Данные для игры распределены следующим образом:
-#     1) В объекте комнаты (база данных):
-# вся конфигурация игры (игровая логика описана в Game/Durak/game.py)
-#     2) В данных машины состояний (FSMcontest) (оперативная память FSM):
-# номер игрока 0 или 1
-# id противника,
-# id сообщений, которые являются игровым полем у противника
+
+# Ход игрока:
+    # Игрок делает допустимые изменения на поле , которые сохраняются в Машине состояний FSMcontext. А при подтверждении хода эти данные добавляются в лобби 
+    # Посредничество машины состояний нужно для того , чтобы избежать черезмерно частого обращения к базе данных
+# Распределение данных:
+    #     1) В объекте комнаты (база данных):
+    #           вся конфигурация игры (игровая логика описана в Game/Durak/game.py) в виде строки(формирование строки происходит в функции Durak.pack())
+    #     2) В данных машины состояний (FSMcontest) (оперативная память FSM):
+    #           Данные для синхронизации с базой данных
+    #               lobby_id - id объекта лобби в базе данных 
+    #           Данные для отображения интерфейса и действий
+    #               opponent_id - id противника,
+    #               opponent_field_messages - id сообщений, которые являются игровым полем у противника
+    #           А так же игровые данные:
+    #               player_number - номер игрока 0 или 1 
+    #               choisen_card - Текущая выбранная карта на поле(карта, которая будет бита)
+    #               player_deck - колода игрока в виде списка list[list[int ,str]] - сила и масть карты
+    #               current_deck_cart - индекс карты в колоде игрока, которая выбрана(отображается) в данный момент
+
+
 async def start_game(bot:Bot, message:types.Message, state:FSMContext, session:AsyncSession, start_game_parametrs:str, is_creator:bool, lobby:Lobby, message_to_display_id:int, opponent:User, chat_id:int):
 
 
@@ -74,30 +87,53 @@ async def start_game(bot:Bot, message:types.Message, state:FSMContext, session:A
 
 
 
-    # Разделение на мини-игры происходит через поле game_name в FSMContext. Данный Фильтр определен в TG/game/filters.py
-    # и используется во всех хендлерах, ответственных за непосредственный игровой процесс
+    # Заполнение параметров, необходимых для игрового процесса
     player_number, opponent_number = 0, 1 if is_creator else 1, 0
-
-    await state.update_data(game_name = strings.GAME_NAME)
-    await state.update_data(player_number = player_number)
-    await state.update_data(opponent_id = opponent.id)
-    await state.update_data(opponent_field_messages = [message_to_display_2.message_id, message_to_display_3.message_id, message_to_display_4.message_id])
-
-    
-
     game_configuration = game.Durak()
     game_config_pack = game_configuration.pack()
     await game_data.set_current_game_data(session = session, game_data = game_config_pack, turn = 0)
 
+    await state.update_data(game_name = strings.GAME_NAME) #Через это поле происходит фильтрация хендлеров игрового процесса с помощью CurrentGameFilter. Данный Фильтр определен в TG/game/filters.py
+    await state.update_data(player_number = player_number)
+    await state.update_data(opponent_id = opponent.id)
+    await state.update_data(opponent_field_messages = [message_to_display_2.message_id, message_to_display_3.message_id, message_to_display_4.message_id])
+    await state.update_data(choisen_card = None)
+    await state.update_data(player_deck = interface.make_cards_parametrs_list(game_configuration.players[player_number].cards))
+    await state.update_data(current_deck_cart = 0)
+
+    
+
+    
+
     await bot.edit_message_text(text = f"Колода противника: {interface.draw_cards(game_configuration.players[opponent_number])}", chat_id = chat_id, message_id = message_to_display_2.message_id)
-    await bot.edit_message_text(text = "поле:", chat_id = chat_id, message_id = message_to_display_3.message_id, reply_markup = field_buttons(game_configuration.field)) 
+    await bot.edit_message_text(text = "поле:", chat_id = chat_id, message_id = message_to_display_3.message_id, reply_markup = field_buttons(lobby.id, game_configuration.field)) 
     await bot.edit_message_text(text = " Ваши карты:", chat_id = chat_id, message_id = message_to_display_4.message_id, reply_markup = deck_buttons()) 
 
 
 
-    
+
+@router.callback_query(FieldCallback.filter())
+async def field_callback(callback:types.CallbackQuery, callback_data:FieldCallback, state:FSMContext, session:AsyncSession):
+
+    lobby = await orm_query.get_lobby_by_id(session = session, lobby_id = callback_data.lobby_id)
+    game_data = await orm_query.get_game_by_id(session = session, game_name = strings.GAME_NAME, game_id = lobby.game_id)
+
+    game_configuration = game.Durak()
+    game_configuration.unpack(game_data.current_game_data)
+
+    await state.update_data(choisen_card = callback_data.selected_number)
+    await callback.message.edit_reply_markup(reply_markup = field_buttons(lobby_id = lobby.id, cards = game_configuration.deck, choisen = callback_data.selected_number))
 
 
+
+
+@router.callback_query(CartNavigationCallback.filter())
+async def card_navigation_callback(callback:types.CallbackQuery, callback_data:CartNavigationCallback, state:FSMContext, session:AsyncSession):
+    fsm_data = await state.get_data()
+    player_deck = fsm_data["player_deck"]
+
+    if((len(player_deck) > callback_data.next_card) and (callback_data >= 0)):
+        await state.update_data(choisen_card = callback_data.next_card)
 
 
 

@@ -200,8 +200,6 @@ class Durak():
         self.field = "F "
         self.card_pool = "CP "
 
-def get_card_visual(card:Card, mini:bool):
-    return KARDS_SET[card.suit][card.power]
 
 
 DECK = [

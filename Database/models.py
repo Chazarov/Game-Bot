@@ -112,7 +112,7 @@ class Durak_game(Base):
     creator_fields_are_filled_in: Mapped[bool] = mapped_column(Boolean, default = False)
     guest_fields_are_filled_in: Mapped[bool] = mapped_column(Boolean, default = False) 
 
-    # Чтобы каждый раз не распаковывать данные игры очередность хода вынесена в объект игровой конфигурации
+    # Чтобы каждый раз не распаковывать данные игры в фильтрах  очередность хода вынесена в объект игровой конфигурации
     turn: Mapped[int] = mapped_column(Integer, default = 0)
 
     current_game_data: Mapped[str] = mapped_column(Text, nullable = True)
