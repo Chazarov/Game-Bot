@@ -123,11 +123,15 @@ async def create_lobby(session:AsyncSession, creator_id:int, guest_id:int, bet:i
 
 
 # Game
-async def get_game_by_id(session:AsyncSession, game_name:str, game_id:int):
-    if(game_name == TTTStrings.GAME_NAME):
-        q = select(TTT_game).where(TTT_game.id == game_id)
-    elif(game_name == DurakStrings.GAME_NAME):
-        q = select(Durak_game).where(Durak_game.id == game_id)
+async def get_TTT_game_by_id(session:AsyncSession, game_id:int):
+    q = select(TTT_game).where(TTT_game.id == game_id)
+    r = await session.execute(q)
+    obj = r.scalar()
+
+    return obj
+
+async def get_Durak_game_by_id(session:AsyncSession, game_id:int):
+    q = select(Durak_game).where(Durak_game.id == game_id)
     r = await session.execute(q)
     obj = r.scalar()
 

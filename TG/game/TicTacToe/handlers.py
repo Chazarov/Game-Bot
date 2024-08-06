@@ -58,7 +58,7 @@ async def start_game(bot:Bot, chat_id:int, state:FSMContext, session:AsyncSessio
     print("is creator " + str(chat_id) + " => " + str(is_creator))
     
     lobby = await orm_query.get_lobby_by_id(session = session, lobby_id = lobby.id)
-    game = await orm_query.get_game_by_id(session = session, game_name = strings.GAME_NAME, game_id = lobby.game_id)
+    game = await orm_query.get_TTT_game_by_id(session = session, game_id = lobby.game_id)
     op_tag = opponent.tag if opponent.tag == None else "@" + opponent.tag
 
 
@@ -78,7 +78,7 @@ async def start_game(bot:Bot, chat_id:int, state:FSMContext, session:AsyncSessio
     try_count = 0
     while(opponent_field_message_id == None):
         lobby = await orm_query.get_lobby_by_id(session = session, lobby_id = lobby.id)
-        game = await orm_query.get_game_by_id(session = session, game_name = strings.GAME_NAME, game_id = game.id)
+        game = await orm_query.get_TTT_game_by_id(session = session, game_id = game.id)
         await session.refresh(game) # Обновление сессии для получения актуальный на данный момент информации
         await session.refresh(lobby)
         if(is_creator):
@@ -94,7 +94,7 @@ async def start_game(bot:Bot, chat_id:int, state:FSMContext, session:AsyncSessio
             await state.clear()
             await orm_query.set_user_state(session = session, user_id = chat_id, state = USER_STATES.NOT_ACTIVE)
             await lobby.delete(session = session)
-            await bot.edit_message_text(text = f"Соединение с игроком не состоялось(\nПопробуйте еще раз", chat_id = chat_id, message_id = message_to_display.message_id)
+            return await bot.edit_message_text(text = f"Соединение с игроком не состоялось(\nПопробуйте еще раз", chat_id = chat_id, message_id = message_to_display.message_id)
 
     print("Connection succeses")
 
@@ -139,7 +139,7 @@ async def TTT_playing_callback(callback:types.CallbackQuery, callback_data:TTT_g
     bot = callback.bot
 
     lobby = await orm_query.get_lobby_by_id(session = session, lobby_id = cbd.lobby_id)
-    game = await orm_query.get_game_by_id(session = session, game_name = strings.GAME_NAME, game_id = lobby.game_id)
+    game = await orm_query.get_TTT_game_by_id(session = session, game_id = lobby.game_id)
     field = [game.field[cbd.n*i:][:cbd.m] for i in range(cbd.n)]
     letter = state_data["letter"]
     opponent_field_message_id = state_data["opponent_field_message_id"]

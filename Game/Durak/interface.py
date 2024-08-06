@@ -1,41 +1,39 @@
-from .game import Player, Card
-from .strings import KARDS_SET
+from .game import Player
+from .strings import KARDS_SET, BIG_KARDS_SET
 
 
-def draw_player_cards(player:Player):
+def draw_player_cards(player:list[list[int, str]]):
     result = ""
 
-    for card in player.cards:
-        result += KARDS_SET[card.suit][card.power] + "\n"
+    for card in player:
+        result += KARDS_SET[card[1]][card[0]] + "\n"
 
     return result
 
-def draw_card(card:Card = None, card_parametrs:list[int, str] = None, mini:bool = True):
+def draw_card(card:list[int, str] = None, mini:bool = True):
 
-    if(card != None):
-        return KARDS_SET[card.suit][card.power]
-    elif(card_parametrs != None):
-        return KARDS_SET[card_parametrs[1]][card_parametrs[0]]
+    if(mini):
+        return KARDS_SET[card[1]][card[0]]
     else:
-        return None
+        return BIG_KARDS_SET[card[1]][card[0]]
     
 
 
-def draw_choisen_card(card:Card):
+def draw_choisen_card(card:list[int, str]):
     result = draw_card(card = card, mini = True) + "\n ☝️"
     return result
 
-def make_cards_parametrs_list(cards:list[Card]):
+def make_cards_parametrs_list(cards:list[list[int, str]]):
     result = list()
     for card in cards:
-        result.append([card.power, card.suit])
+        result.append([card[0], card[1]])
 
     return result
 
 def make_cards_list(cards:list[list[int, str]]):
     result = list()
     for card in cards:
-        result.append(Card(power = card[0], suit = card[1]))
+        result.append(list[int, str](power = card[0], suit = card[1]))
         
     return result
      
