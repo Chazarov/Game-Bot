@@ -10,6 +10,12 @@ from .strings import *
 # Список используется вместо отдельного класса для удобного размещения данных в машине состояний
 # где могут быть сохранены только базовые типы 
 
+
+DECK = [[power, suit]
+    for suit in [HEARTS_SUIT, DIAMONDS_SUIT, CLUBS_SUIT, SPADES_SUIT]
+    for power in range(6, 15)]
+
+
 class Durak():
 
     player_decks = list[list[list[int, str]]]# Массив из двух элементов - массивов карт, которые являются колодами игроков
@@ -24,16 +30,19 @@ class Durak():
     #Сделать создание колоды
     # Ход и конфигурация attaked / defended меняется при поддтвердении атакующего игрока 
     def __init__(self):
+        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
         self.player_decks = [list(), list()]
         self.turn = 0 # Определяет чей сейчас ход - первого или второго игрока (по умолчанию первого)
 
-        self.deck = list() # колода
+        d = DECK
+        random.shuffle(d)
+
+        self.deck = d # колода
         self.trump_card = None  # Карта, которая является козырем
         self.attacking_player = 0 # Игрок, который в данный момент является атакующим (по умолчанию первый)
         self.field = list()  # Игровое поле
         self.card_pool = list() # Карты , которые уже покрыты, но все еще остаются на поле
-
-        cards = DECK
+        
         self.give_cards()
 
 
@@ -150,12 +159,12 @@ class Durak():
     # Дать из колоды карты игрокам
     def give_cards(self):
         while(   (len(self.player_decks[self.turn]) < 6) and (len(self.deck) != 0)    ):
-            self.player_deck[self.turn].append(self.deck.pop())
+            self.player_decks[self.turn].append(self.deck.pop())
 
 
         another = 2 if self.turn == 1 else 1
-        while(   (len(self.player_deck[another]) < 6) and (len(self.deck) != 0)    ):
-            self.player_deck[another].append(self.deck.pop())
+        while(   (len(self.player_decks[another]) < 6) and (len(self.deck) != 0)    ):
+            self.player_decks[another].append(self.deck.pop())
 
 
         
@@ -249,11 +258,9 @@ class Durak():
 
 
 
-DECK = [
-    [power, suit]
-    for suit in [HEARTS_SUIT, DIAMONDS_SUIT, CLUBS_SUIT, SPADES_SUIT]
-    for power in range(6, 15)
-]
+
+    
+
 
 def make_start_game_parametrs()->str:
     result = GAME_NAME

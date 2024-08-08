@@ -19,9 +19,7 @@ class CurrentGameFilter(Filter):
         if("game_name" in data.keys()):
             
             if(self.game_name == data["game_name"]):
-                print(True)
                 return True
-        print(False)
         return False
     
 # Основные состояния бота

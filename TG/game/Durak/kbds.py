@@ -12,6 +12,8 @@ from TG.my_scripts_lib import organaizer
 CONFIRM_CALLBACK = "confirm_callback"
 ACTION_BUTTON_CALLBACK = "action_button_callback"
 END_GAME_CALLBACK = "end_game_callback"
+NEXT_CARD_CALLBACK = "next_card_callback"
+PREV_CARD_CALLBACK = "prev_card_callback"
 
 class FieldCallback(CallbackData, prefix = "field_callback"):
     selected_number:int
@@ -37,12 +39,12 @@ def deck_buttons(is_attak:bool = None):
 
     kbd = InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text = "<<", callback_data = "next_card"),
-            InlineKeyboardButton(text = middle_button_text, callback_data = "action"),
-            InlineKeyboardButton(text = ">>", callback_data = "prev_card")
+            InlineKeyboardButton(text = "<<", callback_data = NEXT_CARD_CALLBACK),
+            InlineKeyboardButton(text = middle_button_text, callback_data = ACTION_BUTTON_CALLBACK),
+            InlineKeyboardButton(text = ">>", callback_data = PREV_CARD_CALLBACK)
         ],
         [
-            InlineKeyboardButton(text = "Подтвердить ход", callback_data = "a")
+            InlineKeyboardButton(text = "Подтвердить ход", callback_data = CONFIRM_CALLBACK)
         ]
     ])
 

@@ -11,7 +11,7 @@ from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from Database import orm_query
-from TG.menu.kbds import menu_buttons, choise_game_buttons, choise_TTT_buttons, main_reply_buttoms, work_btn, backprof
+from TG.menu.kbds import menu_buttons, choise_game_buttons, choise_TTT_buttons, main_reply_buttoms, work_btn, backprof, start_game_buttons
 from TG.pay.utils import is_int_num, Crypto
 
 ADMINID = os.getenv("ADMIN_ID")
@@ -88,11 +88,11 @@ async def command_profile(callback: CallbackQuery, session:AsyncSession):
 @router.callback_query(F.data == "ttt_game")
 async def choise_TTT_game(callback: CallbackQuery, session:AsyncSession, state:FSMContext):
     await callback.message.edit_caption(caption=f"🎮 Выберите параметры",
-                               parse_mode='HTML', reply_markup=choise_TTT_buttons())
+                               parse_mode='HTML', reply_markup = choise_TTT_buttons())
 
 @router.callback_query(F.data == "durak_game")
 async def choise_Durak_game(callback: CallbackQuery, session:AsyncSession):
-   await callback.answer("в разработке...")
+   await callback.message.edit_caption(caption = "Дурак", reply_markup = start_game_buttons())
   
 
 

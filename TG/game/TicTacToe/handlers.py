@@ -124,7 +124,7 @@ async def start_game(bot:Bot, chat_id:int, state:FSMContext, session:AsyncSessio
 
 
 
-
+@router.callback_query(TTT_game_callback_data.filter())
 async def TTT_playing_callback(callback:types.CallbackQuery, callback_data:TTT_game_callback_data, state:FSMContext, session:AsyncSession):
 
     async def end_game():
@@ -203,5 +203,4 @@ async def play_more(callback:types.CallbackQuery, state:FSMContext):
 
         
 
-router.callback_query.register(TTT_playing_callback, TTT_game_callback_data.filter())
 

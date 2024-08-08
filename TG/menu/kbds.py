@@ -4,8 +4,8 @@ from aiogram.filters.callback_data import CallbackData
 from Game.TTT import strings as TTTStrings
 from Game.TTT.strings import make_start_game_parametrs as mgp_TTT
 
-from Game.Durak import strings 
-from Game.Durak.strings import make_start_game_parametrs as mgp_Durak
+from Game.Durak import strings as DurakStrings
+from Game.Durak.game import make_start_game_parametrs as mgp_Durak
 
 from TG.game.kbds import GameStartParametrsCallback
 
@@ -112,5 +112,10 @@ def choise_TTT_buttons():
     )
     return kbd
 
-def choise_Durak_buttons():
-    pass
+def start_game_buttons():
+    kbd = InlineKeyboardMarkup(inline_keyboard =[
+        [InlineKeyboardButton(text = "Начать игру", callback_data = GameStartParametrsCallback(game_parametrs = 
+            mgp_Durak(), game_name = DurakStrings.GAME_NAME, bet = 100).pack())]
+    ]
+    )
+    return kbd

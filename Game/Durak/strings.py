@@ -1,5 +1,3 @@
-from .game import Durak
-
 GAME_NAME = "DURAK"
 
 WIN = "ПОБЕДА!!!"

@@ -45,10 +45,7 @@ router.callback_query.filter(CurrentGameFilter(game_name = strings.GAME_NAME))
     #               field_card_idx - индекс карты на поле, которая выбрана игроком
     #               deck_cart_idx - индекс карты в колоде игрока, которая выбрана в данный момент и которой будет совершено действие (подкинуть или покрыть)
     #           А так же игровые данные, ознакомится с формированием которых можно Game/Durak/game.py (методы Durak_game.pack() / .unpack())
-
-
-
-async def start_game(bot:Bot, message:types.Message, state:FSMContext, session:AsyncSession, start_game_parametrs:str, is_creator:bool, lobby:Lobby, message_to_display_id:int, opponent:User, chat_id:int):
+async def start_game(bot:Bot, state:FSMContext, session:AsyncSession, is_creator:bool, lobby:Lobby, opponent:User, chat_id:int):
     
     lobby = await orm_query.get_lobby_by_id(session = session, lobby_id = lobby.id)
     game_data = await orm_query.get_Durak_game_by_id(session = session, game_id = lobby.game_id)
@@ -62,9 +59,9 @@ async def start_game(bot:Bot, message:types.Message, state:FSMContext, session:A
     message_to_display_4 = await bot.send_message(text = "...", chat_id = chat_id)
 
     if(not is_creator):
-        await game_data.set_display_messages_creator(session = session, message1 = message_to_display_2, message2 = message_to_display_3, message3 = message_to_display_4)
+        await game_data.set_display_messages_creator(session = session, message1 = message_to_display_2.message_id, message2 = message_to_display_3.message_id, message3 = message_to_display_4.message_id)
     else:
-        await game_data.set_display_messages_guest(session = session, message1 = message_to_display_2, message2 = message_to_display_3, message3 = message_to_display_4)
+        await game_data.set_display_messages_guest(session = session, message1 = message_to_display_2.message_id, message2 = message_to_display_3.message_id, message3 = message_to_display_4.message_id)
 
     # Ожидание заполнения параметров лобби со стороны противника
     fields_are_filled_in = False
@@ -98,7 +95,7 @@ async def start_game(bot:Bot, message:types.Message, state:FSMContext, session:A
 
 
     # Заполнение параметров, необходимых для игрового процесса
-    player_number, opponent_number = 0, 1 if is_creator else 1, 0
+    player_number, opponent_number = (0, 1) if is_creator else (1, 0)
     game_configuration = game.Durak()
     game_config_str = game_configuration.pack_str()
     game_config_dict = game_configuration.pack_dict()
@@ -110,7 +107,7 @@ async def start_game(bot:Bot, message:types.Message, state:FSMContext, session:A
     game_config_dict["player_number"] = player_number
     game_config_dict["opponent_id"] = opponent.id
     game_config_dict["opponent_field_messages"] = opponent_field_messages
-    game_config_dict["player_field_messages"]
+    game_config_dict["player_field_messages"] = [message_to_display_2, message_to_display_3, message_to_display_4]
     game_config_dict["field_card_idx"] = None
     game_config_dict["deck_card_idx"] = 0
     await state.update_data(game_config_dict)
@@ -118,9 +115,9 @@ async def start_game(bot:Bot, message:types.Message, state:FSMContext, session:A
 
 
 
-
-    await bot.edit_message_text(text = f"Колода противника: {interface.draw_cards(game_configuration.players[opponent_number])}", chat_id = chat_id, message_id = message_to_display_2.message_id)
-    await bot.edit_message_text(text = "поле:", chat_id = chat_id, message_id = message_to_display_3.message_id, reply_markup = field_buttons(lobby.id, game_configuration.field)) 
+    print(game_configuration.player_decks)
+    await bot.edit_message_text(text = f"У противника: {len(game_configuration.player_decks[opponent_number])} карт", chat_id = chat_id, message_id = message_to_display_2.message_id)
+    await bot.edit_message_text(text = f"Карты на поле: \n{interface.draw_cards(game_configuration.deck, 4, 2, "   ")}", chat_id = chat_id, message_id = message_to_display_3.message_id, reply_markup = field_buttons(lobby.id, game_configuration.field)) 
     await bot.edit_message_text(text = " Ваши карты:", chat_id = chat_id, message_id = message_to_display_4.message_id, reply_markup = deck_buttons()) 
 
 

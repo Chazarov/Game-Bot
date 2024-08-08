@@ -27,6 +27,7 @@ from TG.game.filters import Game_states
 
 from TG.game.TicTacToe.kbds import ttt_game_buttons, TTT_game_callback_data
 from TG.game.TicTacToe.handlers import start_game as TTT_Start_Game
+from TG.game.Durak.handlers import start_game as Durak_start_Game
 from TG.pay.kbds import check_pay
 from TG.pay.utils import getInv, getPayUrl
 
@@ -87,6 +88,7 @@ async def insufficient_funds_for_the_bet(callback:types.CallbackQuery, callback_
 # значит пользователь уже сам был приглашен в лобби и поиск противника заканчивается.
 #
 # Далее происходит синхронизация параметров игры (смотреть далее в этом коде №2). 
+@router.callback_query(GameStartParametrsCallback.filter(), StateFilter(None))
 async def start_game(callback:types.CallbackQuery, callback_data:GameStartParametrsCallback, state:FSMContext, session:AsyncSession):
 
     async def broke_connection():
@@ -166,7 +168,7 @@ async def start_game(callback:types.CallbackQuery, callback_data:GameStartParame
     if(callback_data.game_name == TTTStrings.GAME_NAME):
         await TTT_Start_Game(bot = bot, chat_id = chat_id, state = state, session = session, start_game_parametrs = callback_data.game_parametrs, is_creator = is_creator, lobby = lobby, opponent = opponent)
     elif(callback_data.game_name == DurakStrings.GAME_NAME):
-        pass 
+        await Durak_start_Game(bot = bot, chat_id = chat_id, state = state, session = session, is_creator = is_creator, lobby = lobby, opponent = opponent)
 
         
 
@@ -222,5 +224,3 @@ async def find_opponent_or_invitation(bot:Bot, session:AsyncSession, chat_id:str
     await message_to_display.delete()
     return opponent, lobby
 
-
-router.callback_query.register(start_game, GameStartParametrsCallback.filter(), StateFilter(None))#❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌
